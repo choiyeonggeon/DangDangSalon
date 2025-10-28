@@ -1,0 +1,704 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4289BD4F2EA8DB6E00F02DDC /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 4289BD4E2EA8DB6E00F02DDC /* FirebaseAuth */; };
+		4289BD512EA8DB6E00F02DDC /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4289BD502EA8DB6E00F02DDC /* FirebaseCore */; };
+		4289BD532EA8DB6E00F02DDC /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 4289BD522EA8DB6E00F02DDC /* FirebaseFirestore */; };
+		4289BD552EA8DB6E00F02DDC /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 4289BD542EA8DB6E00F02DDC /* FirebaseStorage */; };
+		4289BD582EA8DB8500F02DDC /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4289BD572EA8DB8500F02DDC /* SnapKit */; };
+		428D06A12EA93FE3004DF6D2 /* TossPayments in Frameworks */ = {isa = PBXBuildFile; productRef = 428D06A02EA93FE3004DF6D2 /* TossPayments */; };
+		42AB1E502EB1095800207828 /* Secret.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 42AB1E4F2EB1095800207828 /* Secret.xcconfig */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4222735E2E9FA7720009329B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4222733F2E9FA7700009329B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 422273462E9FA7700009329B;
+			remoteInfo = DangDangSalon;
+		};
+		422273682E9FA7720009329B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4222733F2E9FA7700009329B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 422273462E9FA7700009329B;
+			remoteInfo = DangDangSalon;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		422273472E9FA7700009329B /* DangSalon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DangSalon.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4222735D2E9FA7720009329B /* DangSalonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DangSalonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		422273672E9FA7720009329B /* DangSalonUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DangSalonUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		42AB1E4F2EB1095800207828 /* Secret.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secret.xcconfig; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4222736F2E9FA7720009329B /* Exceptions for "DangDangSalon" folder in "DangSalon" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 422273462E9FA7700009329B /* DangSalon */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		422273492E9FA7700009329B /* DangDangSalon */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4222736F2E9FA7720009329B /* Exceptions for "DangDangSalon" folder in "DangSalon" target */,
+			);
+			path = DangDangSalon;
+			sourceTree = "<group>";
+		};
+		422273602E9FA7720009329B /* DangDangSalonTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = DangDangSalonTests;
+			sourceTree = "<group>";
+		};
+		4222736A2E9FA7720009329B /* DangDangSalonUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = DangDangSalonUITests;
+			sourceTree = "<group>";
+		};
+		422274752EA0D5750009329B /* Model */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Model;
+			sourceTree = "<group>";
+		};
+		422274762EA0D5810009329B /* ViewController */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ViewController;
+			sourceTree = "<group>";
+		};
+		422274772EA0DB6D0009329B /* Font */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Font;
+			sourceTree = "<group>";
+		};
+		422274B42EA767C20009329B /* Cell */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Cell;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		422273442E9FA7700009329B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4289BD512EA8DB6E00F02DDC /* FirebaseCore in Frameworks */,
+				4289BD552EA8DB6E00F02DDC /* FirebaseStorage in Frameworks */,
+				4289BD4F2EA8DB6E00F02DDC /* FirebaseAuth in Frameworks */,
+				4289BD532EA8DB6E00F02DDC /* FirebaseFirestore in Frameworks */,
+				428D06A12EA93FE3004DF6D2 /* TossPayments in Frameworks */,
+				4289BD582EA8DB8500F02DDC /* SnapKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4222735A2E9FA7720009329B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		422273642E9FA7720009329B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4222733E2E9FA7700009329B = {
+			isa = PBXGroup;
+			children = (
+				42AB1E4F2EB1095800207828 /* Secret.xcconfig */,
+				422274B42EA767C20009329B /* Cell */,
+				422274772EA0DB6D0009329B /* Font */,
+				422274762EA0D5810009329B /* ViewController */,
+				422274752EA0D5750009329B /* Model */,
+				422273492E9FA7700009329B /* DangDangSalon */,
+				422273602E9FA7720009329B /* DangDangSalonTests */,
+				4222736A2E9FA7720009329B /* DangDangSalonUITests */,
+				422273482E9FA7700009329B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		422273482E9FA7700009329B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				422273472E9FA7700009329B /* DangSalon.app */,
+				4222735D2E9FA7720009329B /* DangSalonTests.xctest */,
+				422273672E9FA7720009329B /* DangSalonUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		422273462E9FA7700009329B /* DangSalon */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 422273702E9FA7720009329B /* Build configuration list for PBXNativeTarget "DangSalon" */;
+			buildPhases = (
+				422273432E9FA7700009329B /* Sources */,
+				422273442E9FA7700009329B /* Frameworks */,
+				422273452E9FA7700009329B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				422273492E9FA7700009329B /* DangDangSalon */,
+				422274752EA0D5750009329B /* Model */,
+				422274762EA0D5810009329B /* ViewController */,
+				422274772EA0DB6D0009329B /* Font */,
+				422274B42EA767C20009329B /* Cell */,
+			);
+			name = DangSalon;
+			packageProductDependencies = (
+				4289BD4E2EA8DB6E00F02DDC /* FirebaseAuth */,
+				4289BD502EA8DB6E00F02DDC /* FirebaseCore */,
+				4289BD522EA8DB6E00F02DDC /* FirebaseFirestore */,
+				4289BD542EA8DB6E00F02DDC /* FirebaseStorage */,
+				4289BD572EA8DB8500F02DDC /* SnapKit */,
+				428D06A02EA93FE3004DF6D2 /* TossPayments */,
+			);
+			productName = DangDangSalon;
+			productReference = 422273472E9FA7700009329B /* DangSalon.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4222735C2E9FA7720009329B /* DangSalonTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 422273752E9FA7720009329B /* Build configuration list for PBXNativeTarget "DangSalonTests" */;
+			buildPhases = (
+				422273592E9FA7720009329B /* Sources */,
+				4222735A2E9FA7720009329B /* Frameworks */,
+				4222735B2E9FA7720009329B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4222735F2E9FA7720009329B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				422273602E9FA7720009329B /* DangDangSalonTests */,
+			);
+			name = DangSalonTests;
+			packageProductDependencies = (
+			);
+			productName = DangDangSalonTests;
+			productReference = 4222735D2E9FA7720009329B /* DangSalonTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		422273662E9FA7720009329B /* DangSalonUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 422273782E9FA7720009329B /* Build configuration list for PBXNativeTarget "DangSalonUITests" */;
+			buildPhases = (
+				422273632E9FA7720009329B /* Sources */,
+				422273642E9FA7720009329B /* Frameworks */,
+				422273652E9FA7720009329B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				422273692E9FA7720009329B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4222736A2E9FA7720009329B /* DangDangSalonUITests */,
+			);
+			name = DangSalonUITests;
+			packageProductDependencies = (
+			);
+			productName = DangDangSalonUITests;
+			productReference = 422273672E9FA7720009329B /* DangSalonUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4222733F2E9FA7700009329B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1640;
+				LastUpgradeCheck = 1640;
+				TargetAttributes = {
+					422273462E9FA7700009329B = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					4222735C2E9FA7720009329B = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = 422273462E9FA7700009329B;
+					};
+					422273662E9FA7720009329B = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = 422273462E9FA7700009329B;
+					};
+				};
+			};
+			buildConfigurationList = 422273422E9FA7700009329B /* Build configuration list for PBXProject "DangSalon" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4222733E2E9FA7700009329B;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4289BD4D2EA8DB6E00F02DDC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				4289BD562EA8DB8500F02DDC /* XCRemoteSwiftPackageReference "SnapKit" */,
+				428D069F2EA93FE3004DF6D2 /* XCRemoteSwiftPackageReference "payment-sdk-ios" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 422273482E9FA7700009329B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				422273462E9FA7700009329B /* DangSalon */,
+				4222735C2E9FA7720009329B /* DangSalonTests */,
+				422273662E9FA7720009329B /* DangSalonUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		422273452E9FA7700009329B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				42AB1E502EB1095800207828 /* Secret.xcconfig in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4222735B2E9FA7720009329B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		422273652E9FA7720009329B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		422273432E9FA7700009329B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		422273592E9FA7720009329B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		422273632E9FA7720009329B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4222735F2E9FA7720009329B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 422273462E9FA7700009329B /* DangSalon */;
+			targetProxy = 4222735E2E9FA7720009329B /* PBXContainerItemProxy */;
+		};
+		422273692E9FA7720009329B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 422273462E9FA7700009329B /* DangSalon */;
+			targetProxy = 422273682E9FA7720009329B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		422273712E9FA7720009329B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = DangDangSalon/DangDangSalon.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N5PZ4NS352;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DangDangSalon/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "댕살롱";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyg050217.DangDangSalon;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		422273722E9FA7720009329B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = DangDangSalon/DangDangSalon.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N5PZ4NS352;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DangDangSalon/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "댕살롱";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyg050217.DangDangSalon;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		422273732E9FA7720009329B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 42AB1E4F2EB1095800207828 /* Secret.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = N5PZ4NS352;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		422273742E9FA7720009329B /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 42AB1E4F2EB1095800207828 /* Secret.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = N5PZ4NS352;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		422273762E9FA7720009329B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N5PZ4NS352;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyg050217.DangDangSalonTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DangSalon.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DangSalon";
+			};
+			name = Debug;
+		};
+		422273772E9FA7720009329B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N5PZ4NS352;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyg050217.DangDangSalonTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DangSalon.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DangSalon";
+			};
+			name = Release;
+		};
+		422273792E9FA7720009329B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N5PZ4NS352;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyg050217.DangDangSalonUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = DangDangSalon;
+			};
+			name = Debug;
+		};
+		4222737A2E9FA7720009329B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N5PZ4NS352;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyg050217.DangDangSalonUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = DangDangSalon;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		422273422E9FA7700009329B /* Build configuration list for PBXProject "DangSalon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				422273732E9FA7720009329B /* Debug */,
+				422273742E9FA7720009329B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		422273702E9FA7720009329B /* Build configuration list for PBXNativeTarget "DangSalon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				422273712E9FA7720009329B /* Debug */,
+				422273722E9FA7720009329B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		422273752E9FA7720009329B /* Build configuration list for PBXNativeTarget "DangSalonTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				422273762E9FA7720009329B /* Debug */,
+				422273772E9FA7720009329B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		422273782E9FA7720009329B /* Build configuration list for PBXNativeTarget "DangSalonUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				422273792E9FA7720009329B /* Debug */,
+				4222737A2E9FA7720009329B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		4289BD4D2EA8DB6E00F02DDC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.4.0;
+			};
+		};
+		4289BD562EA8DB8500F02DDC /* XCRemoteSwiftPackageReference "SnapKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SnapKit/SnapKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.7.1;
+			};
+		};
+		428D069F2EA93FE3004DF6D2 /* XCRemoteSwiftPackageReference "payment-sdk-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tosspayments/payment-sdk-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.34;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4289BD4E2EA8DB6E00F02DDC /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4289BD4D2EA8DB6E00F02DDC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		4289BD502EA8DB6E00F02DDC /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4289BD4D2EA8DB6E00F02DDC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		4289BD522EA8DB6E00F02DDC /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4289BD4D2EA8DB6E00F02DDC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		4289BD542EA8DB6E00F02DDC /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4289BD4D2EA8DB6E00F02DDC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		4289BD572EA8DB8500F02DDC /* SnapKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4289BD562EA8DB8500F02DDC /* XCRemoteSwiftPackageReference "SnapKit" */;
+			productName = SnapKit;
+		};
+		428D06A02EA93FE3004DF6D2 /* TossPayments */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 428D069F2EA93FE3004DF6D2 /* XCRemoteSwiftPackageReference "payment-sdk-ios" */;
+			productName = TossPayments;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 4222733F2E9FA7700009329B /* Project object */;
+}
