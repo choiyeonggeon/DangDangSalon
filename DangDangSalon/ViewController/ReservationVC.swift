@@ -23,7 +23,7 @@ final class ReservationVC: UIViewController {
     
     // 현재 선택 상태
     private var selectedTime: String?
-    private var selectedMenu: (name: String, price: Int)?
+    private var selectedMenus: [(name: String, price: Int)] = []
     
     // MARK: - UI
     private let titleLabel: UILabel = {
@@ -161,7 +161,9 @@ final class ReservationVC: UIViewController {
                 } ?? []
                 
                 // 기본 선택값 (첫 번째)
-                self.selectedMenu = self.menus.first
+                if let firstMenu = self.menus.first {
+                    self.selectedMenus = [firstMenu]
+                }
                 
                 DispatchQueue.main.async {
                     self.buildMenuButtons()
@@ -289,18 +291,19 @@ final class ReservationVC: UIViewController {
     
     // MARK: - UI 생성: 메뉴 버튼들
     private func buildMenuButtons() {
-        // 기존 버튼들 제거
         menuStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
-        // 메뉴도 1~2개씩 줄세우거나 그냥 세로 한 줄씩
         for (idx, menuInfo) in menus.enumerated() {
-            let isSelected = (selectedMenu?.name == menuInfo.name && selectedMenu?.price == menuInfo.price)
+            let isSelected = selectedMenus.contains { $0.name == menuInfo.name && $0.price == menuInfo.price }
             
             let btn = UIButton(type: .system)
             btn.setTitle("\(menuInfo.name) · \(menuInfo.price)원", for: .normal)
             btn.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
             btn.layer.cornerRadius = 8
             btn.layer.borderWidth = 1
+            btn.configuration = nil
+            btn.contentHorizontalAlignment = .left
+            btn.contentEdgeInsets = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
             
             if isSelected {
                 btn.backgroundColor = .systemBlue
@@ -312,13 +315,18 @@ final class ReservationVC: UIViewController {
                 btn.layer.borderColor = UIColor.systemGray4.cgColor
             }
             
-            btn.configuration = nil
-            btn.contentHorizontalAlignment = .left
-            btn.contentEdgeInsets = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
             btn.addAction(UIAction { [weak self] _ in
                 guard let self = self else { return }
-                self.selectedMenu = self.menus[idx]
-                self.buildMenuButtons() // 다시 그려서 선택 반영
+                
+                if isSelected {
+                    // 이미 선택되어 있으면 해제
+                    self.selectedMenus.removeAll { $0.name == menuInfo.name && $0.price == menuInfo.price }
+                } else {
+                    // 새로 선택
+                    self.selectedMenus.append(menuInfo)
+                }
+                
+                self.buildMenuButtons()
             }, for: .touchUpInside)
             
             menuStackView.addArrangedSubview(btn)
@@ -413,10 +421,10 @@ final class ReservationVC: UIViewController {
     @objc private func confirmTapped() {
         guard let name = nameField.text, !name.isEmpty,
               let phone = phoneField.text, !phone.isEmpty,
-              let menu = selectedMenu,
               let shopId = shopId,
               let shopName = shopName,
-              let time = selectedTime else {
+              let time = selectedTime,
+              !selectedMenus.isEmpty else {
             showAlert(title: "입력 오류", message: "모든 정보를 입력해주세요.")
             return
         }
@@ -424,18 +432,21 @@ final class ReservationVC: UIViewController {
         let selectedDate = datePicker.date
         let requestText = (requestField.textColor == .systemGray3) ? "" : requestField.text
         
-        // 날짜 key 포맷
+        // 메뉴 배열에서 이름들과 총합 계산
+        let menuNames = selectedMenus.map { $0.name }
+        let totalPrice = selectedMenus.map { $0.price }.reduce(0, +)
+        
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let dateKey = formatter.string(from: selectedDate)
         
-        // 1) 전체 예약(날짜별)에도 저장
+        // 1️⃣ 날짜별 예약 데이터
         db.collection("reservations").document(dateKey).setData([
             time: [
                 "name": name,
                 "phone": phone,
-                "menu": menu.name,
-                "price": menu.price,
+                "menus": menuNames,
+                "totalPrice": totalPrice,
                 "request": requestText ?? "",
                 "timestamp": Timestamp(date: Date()),
                 "shopId": shopId,
@@ -443,7 +454,7 @@ final class ReservationVC: UIViewController {
             ]
         ], merge: true)
         
-        // 2) 유저 개인 히스토리에도 저장
+        // 2️⃣ 유저 개인 히스토리
         if let userId = Auth.auth().currentUser?.uid {
             let userRef = db.collection("users")
                 .document(userId)
@@ -454,8 +465,8 @@ final class ReservationVC: UIViewController {
                 "id": userRef.documentID,
                 "shopId": shopId,
                 "shopName": shopName,
-                "menu": menu.name,
-                "price": menu.price,
+                "menus": menuNames,
+                "totalPrice": totalPrice,
                 "date": Timestamp(date: selectedDate),
                 "time": time,
                 "status": "pending",
@@ -464,7 +475,7 @@ final class ReservationVC: UIViewController {
             ])
         }
         
-        showAlert(title: "예약 완료", message: "\(name)님, \(time)에 예약이 완료되었습니다.")
+        showAlert(title: "예약 완료", message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))")
     }
     
     @objc private func dateChanged() {

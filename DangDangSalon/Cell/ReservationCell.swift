@@ -55,7 +55,7 @@ final class ReservationCell: UITableViewCell {
     
     func configure(with reservation: Reservation) {
         // ✅ 상점 이름 + 메뉴명
-        titleLabel.text = "\(reservation.shopName) · \(reservation.menu)"
+        titleLabel.text = "\(reservation.shopName) · \(reservation.menus)"
         
         // ✅ 상태별 문구만 회색으로 유지
         switch reservation.status {

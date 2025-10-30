@@ -160,7 +160,7 @@ final class ReservationDetailVC: UIViewController {
         guard let r = reservation else { return }
         
         shopRow.valueLabel.text   = r.shopName
-        menuRow.valueLabel.text   = r.menu
+        menuRow.valueLabel.text   = r.menus.joined(separator: ", ")
         dateRow.valueLabel.text   = r.dateString   // dateString은 너가 이미 extension으로 만든 거 사용
         timeRow.valueLabel.text   = r.time
         priceRow.valueLabel.text  = "\(r.priceString)"

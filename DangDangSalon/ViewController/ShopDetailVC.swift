@@ -1,5 +1,13 @@
+//
+//  ShopDetailVC.swift
+//  DangDangSalon
+//
+//  Created by 최영건 on 10/16/25.
+//
+
 import UIKit
 import SnapKit
+import FirebaseAuth
 import FirebaseFirestore
 
 class ShopDetailVC: UIViewController {
@@ -9,12 +17,24 @@ class ShopDetailVC: UIViewController {
     private let contentView = UIView()
     
     var shopId: String?
+    var shopName: String?
+    
     private var shop: Shop?
     private var reviews: [Review] = []
     
     private let db = Firestore.firestore()
+    private var isFavorite = false
     
     private var reviewTableHeight: Constraint? // 🔹 테이블 동적 높이 업데이트용
+    
+    private let favoriteButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setImage(UIImage(systemName: "heart"), for: .normal)
+        btn.tintColor = .systemGray
+        btn.contentHorizontalAlignment = .fill
+        btn.contentVerticalAlignment = .fill
+        return btn
+    }()
     
     private let shopImageView: UIImageView = {
         let iv = UIImageView()
@@ -115,13 +135,14 @@ class ShopDetailVC: UIViewController {
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "미용샵 상세"
+        title = shopName ?? "미용샵 상세"
         view.backgroundColor = .systemBackground
         setupLayout()
         
         reviewTableView.dataSource = self
         reserveButton.addTarget(self, action: #selector(reserveButtonTapped), for: .touchUpInside)
         moreReviewButton.addTarget(self, action: #selector(showAllReviews), for: .touchUpInside)
+        favoriteButton.addTarget(self, action: #selector(toggleFavorite), for: .touchUpInside)
         
         NotificationCenter.default.addObserver(
             self,
@@ -131,6 +152,7 @@ class ShopDetailVC: UIViewController {
         )
         
         fetchShopDetail()
+        checkIfFavorite()
         fetchReviews()
     }
     
@@ -186,7 +208,7 @@ class ShopDetailVC: UIViewController {
             $0.width.equalTo(scrollerView.snp.width)
         }
         
-        [shopImageView, nameLabel, ratingLabel, locationLabel,
+        [shopImageView, nameLabel, favoriteButton, ratingLabel, locationLabel,
          introTitleLabel, introLabel, infoTitleLabel, infoLabel,
          reviewTitleLabel, moreReviewButton, reviewTableView]
             .forEach { contentView.addSubview($0) }
@@ -199,7 +221,14 @@ class ShopDetailVC: UIViewController {
         
         nameLabel.snp.makeConstraints {
             $0.top.equalTo(shopImageView.snp.bottom).offset(16)
-            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.leading.equalToSuperview().offset(20)
+            $0.trailing.equalTo(favoriteButton.snp.leading).offset(-8)
+        }
+        
+        favoriteButton.snp.makeConstraints {
+            $0.centerY.equalTo(nameLabel)
+            $0.trailing.equalToSuperview().inset(20)
+            $0.width.height.equalTo(28)
         }
         
         ratingLabel.snp.makeConstraints {
@@ -254,6 +283,10 @@ class ShopDetailVC: UIViewController {
             $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(16)
             $0.height.equalTo(56)
         }
+        favoriteButton.isUserInteractionEnabled = true
+        scrollerView.isUserInteractionEnabled = true
+        contentView.isUserInteractionEnabled = true
+        contentView.bringSubviewToFront(favoriteButton)
     }
     
     // MARK: - Firestore
@@ -271,6 +304,7 @@ class ShopDetailVC: UIViewController {
                 return
             }
             self.shop = shop
+            self.shopName = shop.name
             
             DispatchQueue.main.async {
                 self.updateUI(with: shop)
@@ -320,6 +354,121 @@ class ShopDetailVC: UIViewController {
                     }
                 }
             }
+        }
+    }
+    
+    // ✅ 찜 여부 확인 함수 수정
+    private func checkIfFavorite() {
+        guard let userId = Auth.auth().currentUser?.uid,
+              let shopId = shopId else { return }
+        
+        db.collection("users")
+            .document(userId)
+            .collection("favorites")
+            .document(shopId)
+            .getDocument { [weak self] snapshot, _ in
+                guard let self = self else { return }
+                self.isFavorite = snapshot?.exists ?? false
+                DispatchQueue.main.async {
+                    self.updateFavoriteButton()
+                }
+            }
+    }
+    
+    @objc private func toggleFavorite() {
+        print("❤️ toggleFavorite() tapped")
+        
+        guard let userId = Auth.auth().currentUser?.uid else {
+            print("⚠️ 로그인되지 않음")
+            return
+        }
+        guard let shopId = shopId else {
+            print("⚠️ shopId 없음")
+            return
+        }
+        guard let shopName = shopName else {
+            print("⚠️ shopName 없음")
+            return
+        }
+        
+        let favRef = db.collection("users")
+            .document(userId)
+            .collection("favorites")
+            .document(shopId)
+        
+        if isFavorite {
+            // 💔 이미 찜 → 해제
+            print("💔 찜 해제 시도")
+            favRef.delete { [weak self] error in
+                guard let self = self else { return }
+                if let error = error {
+                    print("❌ 찜 해제 실패:", error.localizedDescription)
+                    return
+                }
+                print("✅ Firestore 문서 삭제 완료")
+                self.isFavorite = false
+                self.updateFavoriteButton()
+                self.animateHeart()
+            }
+        } else {
+            // ❤️ 찜 추가
+            print("❤️ 찜 추가 시도")
+            favRef.setData([
+                "shopId": shopId,
+                "shopName": shopName,
+                "createdAt": Timestamp(date: Date())
+            ]) { [weak self] error in
+                guard let self = self else { return }
+                if let error = error {
+                    print("❌ 찜 추가 실패:", error.localizedDescription)
+                    return
+                }
+                print("✅ Firestore 문서 생성 완료")
+                self.isFavorite = true
+                self.updateFavoriteButton()
+                self.animateHeart()
+            }
+        }
+    }
+    
+    private func updateFavoriteButton() {
+        DispatchQueue.main.async {
+            // ⚙️ 기본 설정 초기화 (configuration 남아있으면 tintColor 안 먹힘)
+            self.favoriteButton.configuration = nil
+            self.favoriteButton.setTitle(nil, for: .normal)
+            self.favoriteButton.contentHorizontalAlignment = .fill
+            self.favoriteButton.contentVerticalAlignment = .fill
+            
+            let imageName = self.isFavorite ? "heart.fill" : "heart"
+            let color: UIColor = self.isFavorite ? .systemRed : .systemGray
+            
+            let image = UIImage(systemName: imageName)?.withRenderingMode(.alwaysTemplate)
+            self.favoriteButton.setImage(image, for: .normal)
+            self.favoriteButton.tintColor = color
+            
+            print("🎨 버튼 색상 갱신 완료:", self.isFavorite ? "❤️ 빨강" : "🤍 회색")
+        }
+    }
+    
+    // MARK: - 하트 애니메이션
+    private func animateHeart() {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+        
+        UIView.animate(withDuration: 0.15,
+                       delay: 0,
+                       options: [.curveEaseInOut],
+                       animations: {
+            self.favoriteButton.transform = CGAffineTransform(scaleX: 1.4, y: 1.4)
+        }) { _ in
+            UIView.animate(withDuration: 0.25,
+                           delay: 0,
+                           usingSpringWithDamping: 0.5,
+                           initialSpringVelocity: 2,
+                           options: [.curveEaseOut],
+                           animations: {
+                self.favoriteButton.transform = .identity
+            })
         }
     }
     
@@ -378,6 +527,7 @@ final class ReviewCell: UITableViewCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
     }
+    
     required init?(coder: NSCoder) { fatalError() }
     
     private func setupUI() {

@@ -12,65 +12,52 @@ struct Reservation {
     let id: String
     let shopId: String
     let shopName: String
-    let menu: String
-    let price: Int
-    let date: Timestamp
+    let menus: [String]         // ✅ 배열로 변경
+    let totalPrice: Int         // ✅ 총 금액
+    let date: Date
     let time: String
-    let status: String        // "pending", "completed", "cancelled"
+    let status: String
     let reviewWritten: Bool
-    let reserverName: String // 예약자 이름 (닉네임)
     
-    init?(document: DocumentSnapshot) {
-        let data = document.data() ?? [:]
+    // Firestore → 모델 변환
+    init?(data: [String: Any]) {
+        guard let id = data["id"] as? String,
+              let shopId = data["shopId"] as? String,
+              let shopName = data["shopName"] as? String,
+              let menus = data["menus"] as? [String],
+              let totalPrice = data["totalPrice"] as? Int,
+              let timestamp = data["date"] as? Timestamp,
+              let time = data["time"] as? String,
+              let status = data["status"] as? String,
+              let reviewWritten = data["reviewWritten"] as? Bool else { return nil }
         
-        // 필수값들
-        guard
-            let shopId = data["shopId"] as? String,
-            let shopName = data["shopName"] as? String,
-            let menu = data["menu"] as? String,
-            let price = data["price"] as? Int,
-            let date = data["date"] as? Timestamp,
-            let time = data["time"] as? String,
-            let status = data["status"] as? String
-        else {
-            return nil
-        }
-        
-        self.id = document.documentID
+        self.id = id
         self.shopId = shopId
         self.shopName = shopName
-        self.menu = menu
-        self.price = price
-        self.date = date
+        self.menus = menus
+        self.totalPrice = totalPrice
+        self.date = timestamp.dateValue()
         self.time = time
         self.status = status
-        self.reviewWritten = data["reviewWritten"] as? Bool ?? false
-        
-        // 예약자 이름(고객 이름)은 따로 저장해놨다면 거기서 읽고, 없으면 빈값
-        self.reserverName = data["name"] as? String ?? ""
+        self.reviewWritten = reviewWritten
     }
     
-    // 보기 예쁘게 쓸 수 있는 computed들 (UI용)
     var dateString: String {
         let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        f.locale = Locale(identifier: "ko_KR")
-        return f.string(from: date.dateValue())
-    }
-    
-    var statusText: String {
-        switch status {
-        case "pending": return "예약 중"
-        case "completed": return "이용 완료"
-        case "cancelled": return "취소됨"
-        default: return status
-        }
+        f.dateFormat = "yyyy년 M월 d일"
+        return f.string(from: date)
     }
     
     var priceString: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        let formatted = formatter.string(from: NSNumber(value: price)) ?? "\(price)"
-        return "\(formatted)원"
+        return "\(totalPrice.formatted())원"
+    }
+}
+
+extension Reservation {
+    init?(document: DocumentSnapshot) {
+        let data = document.data() ?? [:]
+        var fullData = data
+        fullData["id"] = document.documentID
+        self.init(data: fullData)
     }
 }
