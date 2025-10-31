@@ -18,6 +18,7 @@ class MainTabBarController: UITabBarController {
     private func setupTabs() {
         let homeVC = UINavigationController(rootViewController: HomeVC())
         let reservationVC = UINavigationController(rootViewController: MyReservationVC())
+        let favoriteVC = UINavigationController(rootViewController: FavoritesVC())
         let moreVC = UINavigationController(rootViewController: MoreVC())
         
         homeVC.tabBarItem = UITabBarItem(
@@ -32,13 +33,19 @@ class MainTabBarController: UITabBarController {
             selectedImage: UIImage(systemName: "calendar.circle.fill")
         )
         
+        favoriteVC.tabBarItem = UITabBarItem(
+            title: "즐겨찾기",
+            image: UIImage(systemName: "heart"),
+            selectedImage: UIImage(systemName: "heart.fill")
+            )
+        
         moreVC.tabBarItem = UITabBarItem(
             title: "더보기",
             image: UIImage(systemName: "ellipsis.circle"),
             selectedImage: UIImage(systemName: "ellipsis.circle.fill")
         )
         
-        viewControllers = [homeVC, reservationVC, moreVC]
+        viewControllers = [homeVC, reservationVC, favoriteVC, moreVC]
     }
     
     private func configureAppearance() {
