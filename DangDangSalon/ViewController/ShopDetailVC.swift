@@ -154,9 +154,15 @@ class ShopDetailVC: UIViewController {
         fetchShopDetail()
         checkIfFavorite()
         fetchReviews()
+        
+        updateReserveButtonState()
     }
     
-    // ✅ 예약 버튼 탭 → ReservationVC로 정보 넘겨주기
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        updateReserveButtonState()
+    }
+    
     @objc private func reserveButtonTapped() {
         // shop은 Optional이라 안전하게 풀어줘야 함
         guard let shop = self.shop else { return }
@@ -357,7 +363,6 @@ class ShopDetailVC: UIViewController {
         }
     }
     
-    // ✅ 찜 여부 확인 함수 수정
     private func checkIfFavorite() {
         guard let userId = Auth.auth().currentUser?.uid,
               let shopId = shopId else { return }
@@ -376,20 +381,23 @@ class ShopDetailVC: UIViewController {
     }
     
     @objc private func toggleFavorite() {
-        print("❤️ toggleFavorite() tapped")
-        
         guard let userId = Auth.auth().currentUser?.uid else {
-            print("⚠️ 로그인되지 않음")
+            let alert = UIAlertController(
+                title: "로그인 필요",
+                message: "즐겨찾기 기능은 로그인 후 이용 가능합니다.",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "로그인하기", style: .default, handler: { _ in
+                let loginVC = LoginVC()
+                loginVC.modalPresentationStyle = .fullScreen
+                self.present(loginVC, animated: true)
+            }))
+            alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+            present(alert, animated: true)
             return
         }
-        guard let shopId = shopId else {
-            print("⚠️ shopId 없음")
-            return
-        }
-        guard let shopName = shopName else {
-            print("⚠️ shopName 없음")
-            return
-        }
+        guard let shopId = shopId,
+              let shopName = shopName else { return }
         
         let favRef = db.collection("users")
             .document(userId)
@@ -397,36 +405,26 @@ class ShopDetailVC: UIViewController {
             .document(shopId)
         
         if isFavorite {
-            // 💔 이미 찜 → 해제
-            print("💔 찜 해제 시도")
             favRef.delete { [weak self] error in
                 guard let self = self else { return }
-                if let error = error {
-                    print("❌ 찜 해제 실패:", error.localizedDescription)
-                    return
+                if error == nil {
+                    self.isFavorite = false
+                    self.updateFavoriteButton()
+                    self.animateHeart()
                 }
-                print("✅ Firestore 문서 삭제 완료")
-                self.isFavorite = false
-                self.updateFavoriteButton()
-                self.animateHeart()
             }
         } else {
-            // ❤️ 찜 추가
-            print("❤️ 찜 추가 시도")
             favRef.setData([
                 "shopId": shopId,
                 "shopName": shopName,
                 "createdAt": Timestamp(date: Date())
             ]) { [weak self] error in
                 guard let self = self else { return }
-                if let error = error {
-                    print("❌ 찜 추가 실패:", error.localizedDescription)
-                    return
+                if error == nil {
+                    self.isFavorite = true
+                    self.updateFavoriteButton()
+                    self.animateHeart()
                 }
-                print("✅ Firestore 문서 생성 완료")
-                self.isFavorite = true
-                self.updateFavoriteButton()
-                self.animateHeart()
             }
         }
     }
@@ -488,6 +486,18 @@ class ShopDetailVC: UIViewController {
                 self.reviewTableView.reloadData()
                 self.reviewTableHeight?.update(offset: self.reviews.count * 60)
             }
+        }
+    }
+    
+    private func updateReserveButtonState() {
+        if Auth.auth().currentUser == nil {
+            reserveButton.backgroundColor = .systemGray4
+            reserveButton.isEnabled = false
+            reserveButton.setTitle("로그인 후 예약 가능", for: .normal)
+        } else {
+            reserveButton.backgroundColor = .systemBlue
+            reserveButton.isEnabled = true
+            reserveButton.setTitle("예약하기", for: .normal)
         }
     }
     

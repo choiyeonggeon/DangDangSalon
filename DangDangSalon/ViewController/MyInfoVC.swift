@@ -42,7 +42,7 @@ class MyInfoVC: UIViewController {
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
     private let actionButton = UIButton(type: .system)
     
-    private var menuItems: [String] = ["내 예약 내역", "즐겨찾기", "고객센터 문의"]
+    private var menuItems: [String] = ["예약 내역", "즐겨찾기", "고객센터 문의"]
     
     // MARK: - Lifecycle
     override func viewDidLoad() {

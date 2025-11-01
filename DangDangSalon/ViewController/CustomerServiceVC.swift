@@ -16,6 +16,7 @@ final class CustomerServiceVC: UIViewController {
     private var inquiries: [CustomerInquiry] = []
     
     private let tableView = UITableView()
+    private let activityIndicator = UIActivityIndicatorView(style: .large)
     
     private let emptyLabel: UILabel = {
         let label = UILabel()
@@ -40,13 +41,19 @@ final class CustomerServiceVC: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        title = "고객센터 문의"
+        title = "고객센터"
         
         setupLayout()
         setupTableView()
         
         writeButton.addTarget(self, action: #selector(writeTapped), for: .touchUpInside)
         fetchInquiries()
+        
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(fetchInquiries),
+                                               name: .inquirySubmitted,
+                                               object: nil
+        )
     }
     
     private func setupLayout() {
@@ -78,30 +85,27 @@ final class CustomerServiceVC: UIViewController {
     }
     
     // MARK: - Firestore
-    private func fetchInquiries() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+    @objc private func fetchInquiries() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        activityIndicator.startAnimating()
+        tableView.isUserInteractionEnabled = false
         
         db.collection("users")
-            .document(userId)
+            .document(uid)
             .collection("customerInquiries")
             .order(by: "createdAt", descending: true)
-            .getDocuments { snapshot, error in
+            .getDocuments { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
                 if let error = error {
-                    print("문의 내역 불러오기 실패:", error.localizedDescription)
-                    self.emptyLabel.isHidden = false
+                    print("문의 불러오기 실패:", error.localizedDescription)
                     return
                 }
                 
-                guard let docs = snapshot?.documents else {
-                    self.emptyLabel.isHidden = false
-                    return
-                }
-                
-                self.inquiries = docs.compactMap { CustomerInquiry(document: $0) }
-                
+                self.inquiries = snapshot?.documents.compactMap { CustomerInquiry(document: $0) } ?? []
                 DispatchQueue.main.async {
                     self.tableView.reloadData()
-                    self.emptyLabel.isHidden = !self.inquiries.isEmpty
                 }
             }
     }

@@ -100,9 +100,9 @@ final class MoreVC: UIViewController {
     
     @objc private func updateMenuItems() {
         if Auth.auth().currentUser != nil {
-            menuItems = ["로그아웃", "내 정보", "결제내역", "고객센터", "앱 버전 정보"]
+            menuItems = ["로그아웃", "내 정보", "결제 내역", "공지사항", "고객센터", "앱 버전 정보"]
         } else {
-            menuItems = ["로그인", "내 정보", "결제내역", "고객센터", "앱 버전 정보"]
+            menuItems = ["로그인", "내 정보", "결제 내역", "공지사항", "고객센터", "앱 버전 정보"]
         }
         updateHeaderGreeting()
         tableView.reloadData()
@@ -169,8 +169,12 @@ extension MoreVC: UITableViewDelegate, UITableViewDataSource {
             let vc = MyInfoVC()
             navigationController?.pushViewController(vc, animated: true)
             
-        case "결제내역":
+        case "결제 내역":
             let vc = PaymentHistoryVC()
+            navigationController?.pushViewController(vc, animated: true)
+            
+        case "공지사항":
+            let vc = NoticeVC()
             navigationController?.pushViewController(vc, animated: true)
             
         case "고객센터":

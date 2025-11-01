@@ -12,5 +12,7 @@ class PaymentHistoryVC: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        title = "결제 내역"
     }
 }
