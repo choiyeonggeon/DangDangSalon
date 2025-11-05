@@ -8,6 +8,8 @@
 import UIKit
 import SnapKit
 import FirebaseAuth
+import KakaoSDKAuth
+import KakaoSDKCommon
 import AuthenticationServices
 
 class LoginVC: UIViewController {
@@ -80,6 +82,7 @@ class LoginVC: UIViewController {
         view.backgroundColor = .systemBackground
         appleButton.isUserInteractionEnabled = true
         setupUI()
+//        kakaoLoginWithApp()
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tapGesture.cancelsTouchesInView = false
@@ -91,8 +94,15 @@ class LoginVC: UIViewController {
         appleButton.addTarget(self, action: #selector(handleAppleLogin), for: .touchUpInside)
     }
     
+//    func kakaoLoginWithApp() {
+//        UserApi.shared.loginWithKakaoTalk { (oauthToken, error) in
+//            if let error = error {
+//                
+//            }
+//        }
+//    }
+    
     private func setupUI() {
-        
         let stackView = UIStackView(arrangedSubviews: [
             emailField,
             passwordField,
@@ -101,6 +111,7 @@ class LoginVC: UIViewController {
             appleButton,
             signupButton
         ])
+        
         stackView.axis = .vertical
         stackView.spacing = 14
         stackView.alignment = .fill

@@ -13,6 +13,8 @@ import FirebaseFirestore
 class ShopDetailVC: UIViewController {
     
     // MARK: - UI
+    private let pageControl = UIPageControl()
+    private let imageScrollerView = UIScrollView()
     private let scrollerView = UIScrollView()
     private let contentView = UIView()
     
@@ -25,7 +27,7 @@ class ShopDetailVC: UIViewController {
     private let db = Firestore.firestore()
     private var isFavorite = false
     
-    private var reviewTableHeight: Constraint? // 🔹 테이블 동적 높이 업데이트용
+    private var reviewTableHeight: Constraint?
     
     private let favoriteButton: UIButton = {
         let btn = UIButton(type: .system)
@@ -34,15 +36,6 @@ class ShopDetailVC: UIViewController {
         btn.contentHorizontalAlignment = .fill
         btn.contentVerticalAlignment = .fill
         return btn
-    }()
-    
-    private let shopImageView: UIImageView = {
-        let iv = UIImageView()
-        iv.image = UIImage(named: "sampleShop")
-        iv.contentMode = .scaleAspectFill
-        iv.layer.cornerRadius = 16
-        iv.clipsToBounds = true
-        return iv
     }()
     
     private let nameLabel: UILabel = {
@@ -164,11 +157,10 @@ class ShopDetailVC: UIViewController {
     }
     
     @objc private func reserveButtonTapped() {
-        // shop은 Optional이라 안전하게 풀어줘야 함
+        
         guard let shop = self.shop else { return }
         
-        // id는 Optional 아닐 가능성이 높으니까 그냥 바로 사용
-        let shopId = shop.id  // 여기서 에러 안 남 (String이라고 가정)
+        let shopId = shop.id
         
         fetchMenus(for: shopId) { menus in
             let vc = ReservationVC()
@@ -214,19 +206,29 @@ class ShopDetailVC: UIViewController {
             $0.width.equalTo(scrollerView.snp.width)
         }
         
-        [shopImageView, nameLabel, favoriteButton, ratingLabel, locationLabel,
+        [imageScrollerView, pageControl, nameLabel, favoriteButton, ratingLabel, locationLabel,
          introTitleLabel, introLabel, infoTitleLabel, infoLabel,
          reviewTitleLabel, moreReviewButton, reviewTableView]
             .forEach { contentView.addSubview($0) }
         
-        shopImageView.snp.makeConstraints {
+        imageScrollerView.isPagingEnabled = true
+        imageScrollerView.showsHorizontalScrollIndicator = false
+        imageScrollerView.layer.cornerRadius = 10
+        imageScrollerView.clipsToBounds = true
+        
+        imageScrollerView.snp.makeConstraints {
             $0.top.equalToSuperview().offset(20)
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(200)
+            $0.height.equalTo(240)
+        }
+        
+        pageControl.snp.makeConstraints {
+            $0.top.equalTo(imageScrollerView.snp.bottom).offset(6)
+            $0.centerX.equalToSuperview()
         }
         
         nameLabel.snp.makeConstraints {
-            $0.top.equalTo(shopImageView.snp.bottom).offset(16)
+            $0.top.equalTo(imageScrollerView.snp.bottom).offset(16)
             $0.leading.equalToSuperview().offset(20)
             $0.trailing.equalTo(favoriteButton.snp.leading).offset(-8)
         }
@@ -280,8 +282,8 @@ class ShopDetailVC: UIViewController {
         reviewTableView.snp.makeConstraints {
             $0.top.equalTo(reviewTitleLabel.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview().inset(20)
-            reviewTableHeight = $0.height.equalTo(0).constraint // 나중에 fetchReviews에서 업데이트
-            $0.bottom.equalToSuperview().offset(-40) // 마지막 여백
+            reviewTableHeight = $0.height.equalTo(0).constraint
+            $0.bottom.equalToSuperview().offset(-40)
         }
         
         reserveButton.snp.makeConstraints {
@@ -351,16 +353,55 @@ class ShopDetailVC: UIViewController {
         📍 주소: \(shop.address ?? "정보 없음")
         """
         
-        if let imageURL = shop.imageURL,
-           let url = URL(string: imageURL) {
-            DispatchQueue.global().async {
-                if let data = try? Data(contentsOf: url) {
-                    DispatchQueue.main.async {
-                        self.shopImageView.image = UIImage(data: data)
+        setupImageScrollView(with: shop.imageURLs)
+    }
+    
+    private func setupImageScrollView(with urls: [String]?) {
+        imageScrollerView.subviews.forEach { $0.removeFromSuperview() }
+        
+        guard let urls = urls, !urls.isEmpty else {
+            let iv = UIImageView(image: UIImage(named: "sampleShop"))
+            iv.contentMode = .scaleAspectFill
+            iv.frame = CGRect(x: 0, y: 0,
+                              width: view.frame.width - 40,
+                              height: 240)
+            
+            iv.clipsToBounds = true
+            imageScrollerView.addSubview(iv)
+            imageScrollerView.contentSize = iv.frame.size
+            pageControl.numberOfPages = 1
+            return
+        }
+        
+        for (index, urlStr) in urls.enumerated() {
+            let iv = UIImageView()
+            iv.contentMode = .scaleAspectFill
+            iv.clipsToBounds = true
+            iv.backgroundColor = .systemGray6
+            
+            if let url = URL(string: urlStr) {
+                DispatchQueue.global().async {
+                    if let data = try? Data(contentsOf: url),
+                       let img = UIImage(data: data) {
+                        DispatchQueue.main.async {
+                            iv.image = img
+                        }
                     }
                 }
             }
+            
+            let xPos = CGFloat(index) * (view.frame.width - 40)
+            iv.frame = CGRect(x: xPos, y: 0, width: view.frame.width - 40, height: 240)
+            imageScrollerView.addSubview(iv)
         }
+        
+        imageScrollerView.contentSize = CGSize(
+            width: (view.frame.width - 40) * CGFloat(urls.count), height: 240
+        )
+        
+        imageScrollerView.delegate = self
+        pageControl.numberOfPages = urls.count
+        pageControl.currentPage = 0
     }
     
     private func checkIfFavorite() {
@@ -431,7 +472,7 @@ class ShopDetailVC: UIViewController {
     
     private func updateFavoriteButton() {
         DispatchQueue.main.async {
-            // ⚙️ 기본 설정 초기화 (configuration 남아있으면 tintColor 안 먹힘)
+            
             self.favoriteButton.configuration = nil
             self.favoriteButton.setTitle(nil, for: .normal)
             self.favoriteButton.contentHorizontalAlignment = .fill
@@ -444,7 +485,6 @@ class ShopDetailVC: UIViewController {
             self.favoriteButton.setImage(image, for: .normal)
             self.favoriteButton.tintColor = color
             
-            print("🎨 버튼 색상 갱신 완료:", self.isFavorite ? "❤️ 빨강" : "🤍 회색")
         }
     }
     
@@ -566,5 +606,12 @@ final class ReviewCell: UITableViewCell {
         userLabel.text = review.nickname
         ratingLabel.text = "⭐️ \(review.rating)"
         contentLabel.text = review.content
+    }
+}
+
+extension ShopDetailVC: UIScrollViewDelegate {
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let pageIndex = round(scrollView.contentOffset.x / (view.frame.width - 40))
+        pageControl.currentPage = Int(pageIndex)
     }
 }

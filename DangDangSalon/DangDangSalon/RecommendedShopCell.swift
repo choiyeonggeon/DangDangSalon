@@ -92,7 +92,7 @@ class RecommendedShopCell: UICollectionViewCell {
         nameLabel.text = shop.name
         ratingLabel.text = String(format: "%.1f", shop.rating)
         
-        if let imageURL = shop.imageURL {
+        if let imageURLs = shop.imageURLs {
             
         } else {
             shopImageView.image = UIImage(systemName: "scissors")

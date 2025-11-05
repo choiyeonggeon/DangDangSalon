@@ -7,11 +7,17 @@
 
 import UIKit
 import TossPayments
+import Firebase
+import FirebaseAuth
 import FirebaseFirestore
+import FirebaseMessaging
+import UserNotifications
+import KakaoSDKCommon
+import KakaoSDKAuth
 import FirebaseCore
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
     
     var window: UIWindow?
     
@@ -20,6 +26,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         
+        KakaoSDK.initSDK(appKey: "${NATIVE_APP_KEY}")
         FirebaseApp.configure()
         
         window = UIWindow(frame: UIScreen.main.bounds)
@@ -41,6 +48,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             print("결제 실패: \(urlString)")
         }
         return true
+        
+//        if (AuthApi.isKakaoTalkLoginUrl(url)) {
+//            return AuthController.handleOpenUrl(url: url)
+//        }
+//        
+//        return false
     }
     
     private func handlePaymentSuccess(url: URL) {
@@ -80,7 +93,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // If any sessions were discarded while the application was not running, this will be called shortly after application:didFinishLaunchingWithOptions.
         // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
     }
+    // MARK: - Firebase Message
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound])
+    }
     
-    
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let fcmToken = fcmToken,
+        let user = Auth.auth().currentUser else { return }
+        
+        let db = Firestore.firestore()
+        let collection = user.email?.contains("owner") == true ? "owner" : "users"
+        db.collection(collection).document(user.uid).setData(["fcmToken": fcmToken], merge: true)
+    }
 }
-
