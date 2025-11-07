@@ -432,7 +432,6 @@ final class ReservationVC: UIViewController {
         let selectedDate = datePicker.date
         let requestText = (requestField.textColor == .systemGray3) ? "" : requestField.text
         
-        // 메뉴 배열에서 이름들과 총합 계산
         let menuNames = selectedMenus.map { $0.name }
         let totalPrice = selectedMenus.map { $0.price }.reduce(0, +)
         
@@ -440,42 +439,70 @@ final class ReservationVC: UIViewController {
         formatter.dateFormat = "yyyy-MM-dd"
         let dateKey = formatter.string(from: selectedDate)
         
-        // 1️⃣ 날짜별 예약 데이터
-        db.collection("reservations").document(dateKey).setData([
-            time: [
-                "name": name,
-                "phone": phone,
-                "menus": menuNames,
-                "totalPrice": totalPrice,
-                "request": requestText ?? "",
-                "timestamp": Timestamp(date: Date()),
-                "shopId": shopId,
-                "shopName": shopName
-            ]
-        ], merge: true)
+        // ✅ 1️⃣ 날짜별 예약 슬롯 관리용 (예약된 시간 마킹)
+        db.collection("reservations")
+            .document(dateKey)
+            .setData([
+                time: [
+                    "name": name,
+                    "phone": phone,
+                    "menus": menuNames,
+                    "totalPrice": totalPrice,
+                    "request": requestText ?? "",
+                    "timestamp": Timestamp(date: Date()),
+                    "shopId": shopId,
+                    "shopName": shopName
+                ]
+            ], merge: true)
         
-        // 2️⃣ 유저 개인 히스토리
-        if let userId = Auth.auth().currentUser?.uid {
-            let userRef = db.collection("users")
-                .document(userId)
-                .collection("reservations")
-                .document()
-            
-            userRef.setData([
-                "id": userRef.documentID,
-                "shopId": shopId,
-                "shopName": shopName,
-                "menus": menuNames,
-                "totalPrice": totalPrice,
-                "date": Timestamp(date: selectedDate),
-                "time": time,
-                "status": "pending",
-                "reviewWritten": false,
-                "createdAt": Timestamp(date: Date())
-            ])
+        // ✅ 2️⃣ 유저 개인 히스토리
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        let userRef = db.collection("users")
+            .document(userId)
+            .collection("reservations")
+            .document()
+        
+        let resData: [String: Any] = [
+            "id": userRef.documentID,
+            "userId": userId,
+            "name": name,
+            "phone": phone,
+            "shopId": shopId,
+            "shopName": shopName,
+            "menus": menuNames,
+            "totalPrice": totalPrice,
+            "date": Timestamp(date: selectedDate),
+            "time": time,
+            "timestamp": Timestamp(date: Date()), // ✅ 추가
+            "status": "pending",
+            "reviewWritten": false,
+            "createdAt": Timestamp(date: Date())
+        ]
+        
+        userRef.setData(resData) { error in
+            if let error = error {
+                print("예약 저장 실패:", error.localizedDescription)
+            } else {
+                print("✅ 고객 예약 저장 완료")
+            }
         }
         
-        showAlert(title: "예약 완료", message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))")
+        // ✅ 3️⃣ 사장님용 루트 컬렉션에도 복제 저장 (사장님 앱용)
+        db.collection("reservations")
+            .document(userRef.documentID)
+            .setData(resData) { error in
+                if let error = error {
+                    print("사장님용 예약 복사 실패:", error.localizedDescription)
+                } else {
+                    print("✅ 사장님용 예약 복사 완료")
+                }
+            }
+        
+        // ✅ 4️⃣ 성공 알림
+        showAlert(
+            title: "예약 완료",
+            message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))"
+        )
     }
     
     @objc private func dateChanged() {

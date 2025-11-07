@@ -214,14 +214,22 @@ final class ReservationDetailVC: UIViewController {
             .collection("reservations")
             .document(reservation.id)
         
-        userRef.updateData(["status" : "cancelled"]) { error in
+        let ownerRef = db.collection("reservations")
+            .document(reservation.id) // ✅ 루트에도 같은 ID로 저장되어 있음
+        
+        // 동시에 두 경로 업데이트
+        let batch = db.batch()
+        batch.updateData(["status": "cancelled"], forDocument: userRef)
+        batch.updateData(["status": "cancelled"], forDocument: ownerRef)
+        
+        batch.commit { error in
             if let error = error {
                 print("예약 취소 실패:", error.localizedDescription)
                 self.showAlert(title: "오류", message: "예약 취소에 실패했습니다.")
                 return
             }
             
-            print("✅ 예약 취소 완료")
+            print("✅ 예약 취소 완료 (양쪽 동기화)")
             self.showAlert(title: "취소 완료", message: "예약이 취소되었습니다.") {
                 NotificationCenter.default.post(name: .reservationCancelled, object: nil)
                 self.navigationController?.popViewController(animated: true)
