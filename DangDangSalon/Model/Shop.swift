@@ -14,7 +14,7 @@ struct Shop {
     let rating: Double
     let imageURLs: [String]?
     let isRecommended: Bool
-    let distanceMeter: Int?
+    var distanceMeter: Int?
     let sizeType: String?
     let address: String?
     let phone: String?
@@ -31,7 +31,7 @@ struct Shop {
         }
         self.id = document.documentID
         self.name = name
-        self.rating = rating
+        self.rating = data["rating"] as? Double ?? 0.0
         self.imageURLs = data["imageURLs"] as? [String]
         self.isRecommended = data["isRecommended"] as? Bool ?? false
         self.distanceMeter = data["distanceMeter"] as? Int
