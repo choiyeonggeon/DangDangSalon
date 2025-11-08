@@ -15,47 +15,68 @@ final class MyReservationVC: UIViewController {
     private let db = Firestore.firestore()
     private var reservations: [Reservation] = []
     
+    // MARK: - UI
+    private let headerView: UIView = {
+        let v = UIView()
+        v.backgroundColor = .white
+        v.layer.cornerRadius = 20
+        v.layer.shadowColor = UIColor.black.cgColor
+        v.layer.shadowOpacity = 0.08
+        v.layer.shadowOffset = CGSize(width: 0, height: 3)
+        v.layer.shadowRadius = 6
+        return v
+    }()
+    
     private let appNameLabel: UILabel = {
         let label = UILabel()
         label.text = "댕살롱"
         label.font = UIFont(name: "GmarketSansBold", size: 34)
         label.textColor = UIColor.systemBlue
         label.textAlignment = .left
-        label.adjustsFontSizeToFitWidth = true
         return label
     }()
     
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "예약 내역"
-        label.font = .boldSystemFont(ofSize: 24)
-        label.textAlignment = .center
-        return label
-    }()
-    
-    private let emptyLabel: UILabel = {
-        let label = UILabel()
-        label.text = "아직 예약이 없어요 🐶"
-        label.textColor = .systemGray
-        label.font = .systemFont(ofSize: 16)
-        label.textAlignment = .center
-        label.isHidden = true
+        label.text = "🐾 예약 내역"
+        label.font = .boldSystemFont(ofSize: 22)
+        label.textColor = .label
         return label
     }()
     
     private let tableView: UITableView = {
-        let tv = UITableView()
+        let tv = UITableView(frame: .zero, style: .plain)
         tv.register(ReservationCell.self, forCellReuseIdentifier: "ReservationCell")
+        tv.backgroundColor = .clear
         tv.separatorStyle = .none
-        tv.rowHeight = 70
-        tv.isHidden = true
+        tv.showsVerticalScrollIndicator = false
         return tv
+    }()
+    
+    private let emptyView: UIView = {
+        let v = UIView()
+        v.isHidden = true
+        let img = UIImageView(image: UIImage(systemName: "pawprint.circle.fill"))
+        img.tintColor = .systemGray4
+        let label = UILabel()
+        label.text = "아직 예약이 없어요 🐶"
+        label.textColor = .systemGray
+        label.font = .systemFont(ofSize: 17)
+        label.textAlignment = .center
+        let stack = UIStackView(arrangedSubviews: [img, label])
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 12
+        v.addSubview(stack)
+        stack.snp.makeConstraints { $0.center.equalToSuperview() }
+        return v
     }()
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .systemGroupedBackground
+        title = "예약 내역"
         setupLayout()
         
         tableView.dataSource = self
@@ -71,7 +92,7 @@ final class MyReservationVC: UIViewController {
         fetchReservations()
     }
     
-    // MARK: - Firestore 불러오기
+    // MARK: - Firestore
     @objc private func fetchReservations() {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("로그인 정보 없음")
@@ -85,51 +106,57 @@ final class MyReservationVC: UIViewController {
             .getDocuments { snapshot, error in
                 if let error = error {
                     print("예약 불러오기 실패:", error.localizedDescription)
-                    self.emptyLabel.isHidden = false
-                    self.tableView.isHidden = true
+                    self.showEmptyState()
                     return
                 }
-                
                 guard let docs = snapshot?.documents else {
-                    self.emptyLabel.isHidden = false
-                    self.tableView.isHidden = true
+                    self.showEmptyState()
                     return
                 }
-                
                 self.reservations = docs.compactMap { Reservation(document: $0) }
-                
                 DispatchQueue.main.async {
-                    let hasData = !self.reservations.isEmpty
-                    self.tableView.isHidden = !hasData
-                    self.emptyLabel.isHidden = hasData
-                    self.tableView.reloadData()
+                    if self.reservations.isEmpty {
+                        self.showEmptyState()
+                    } else {
+                        self.emptyView.isHidden = true
+                        self.tableView.isHidden = false
+                        self.tableView.reloadData()
+                    }
                 }
             }
     }
     
+    private func showEmptyState() {
+        DispatchQueue.main.async {
+            self.emptyView.isHidden = false
+            self.tableView.isHidden = true
+        }
+    }
+    
     // MARK: - Layout
     private func setupLayout() {
-        [appNameLabel, titleLabel, tableView, emptyLabel].forEach { view.addSubview($0) }
+        [headerView, tableView, emptyView].forEach { view.addSubview($0) }
+        [appNameLabel, titleLabel].forEach { headerView.addSubview($0) }
         
+        headerView.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(16)
+            $0.leading.trailing.equalToSuperview().inset(16)
+            $0.height.equalTo(110)
+        }
         appNameLabel.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).inset(-10)
-            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.top.equalToSuperview().inset(16)
+            $0.leading.equalToSuperview().inset(20)
         }
-        
         titleLabel.snp.makeConstraints {
-            $0.top.equalTo(appNameLabel.snp.bottom).offset(10)
-            $0.centerX.equalToSuperview()
+            $0.top.equalTo(appNameLabel.snp.bottom).offset(8)
+            $0.leading.equalTo(appNameLabel)
         }
-        
         tableView.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(20)
+            $0.top.equalTo(headerView.snp.bottom).offset(20)
             $0.leading.trailing.equalToSuperview().inset(16)
             $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(16)
         }
-        
-        emptyLabel.snp.makeConstraints {
-            $0.center.equalToSuperview()
-        }
+        emptyView.snp.makeConstraints { $0.edges.equalToSuperview() }
     }
 }
 
@@ -144,14 +171,11 @@ extension MyReservationVC: UITableViewDataSource, UITableViewDelegate {
         guard let cell = tableView.dequeueReusableCell(
             withIdentifier: "ReservationCell",
             for: indexPath
-        ) as? ReservationCell else {
-            return UITableViewCell()
-        }
+        ) as? ReservationCell else { return UITableViewCell() }
         
         let reservation = reservations[indexPath.row]
         cell.configure(with: reservation)
         
-        // 리뷰 작성 버튼 눌렀을 때
         cell.writeReviewAction = { [weak self] in
             guard let self = self else { return }
             let vc = ReviewWriteVC()
@@ -170,7 +194,6 @@ extension MyReservationVC: UITableViewDataSource, UITableViewDelegate {
         return cell
     }
     
-    // ✅ 셀 클릭 시 상세 보기로 이동
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let vc = ReservationDetailVC()

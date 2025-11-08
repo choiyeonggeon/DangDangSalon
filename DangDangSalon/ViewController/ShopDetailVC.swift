@@ -348,9 +348,9 @@ class ShopDetailVC: UIViewController {
         introLabel.text = shop.intro ?? "소개글이 없습니다."
         
         infoLabel.text = """
-        📅 영업시간: \(shop.openTime ?? "미정") ~ \(shop.closeTime ?? "미정")
-        ☎️ 전화번호: \(shop.phone ?? "정보 없음")
-        📍 주소: \(shop.address ?? "정보 없음")
+        영업시간: \(shop.openTime ?? "미정") ~ \(shop.closeTime ?? "미정")
+        전화번호: \(shop.phone ?? "정보 없음")
+        주소: \(shop.address ?? "정보 없음")
         """
         
         setupImageScrollView(with: shop.imageURLs)
