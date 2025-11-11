@@ -9,8 +9,12 @@ import UIKit
 import SnapKit
 import FirebaseFirestore
 
-class HomeVC: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate {
+class HomeVC: UIViewController,
+              UICollectionViewDataSource,
+              UICollectionViewDelegate,
+              UISearchBarDelegate {
     
+    // MARK: - UI
     private let appNameLabel: UILabel = {
         let label = UILabel()
         label.text = "댕살롱"
@@ -35,19 +39,10 @@ class HomeVC: UIViewController, UICollectionViewDataSource, UICollectionViewDele
         return sb
     }()
     
+    private var categoryButtons: [UIButton] = []
+    
     private let categoryStack: UIStackView = {
-        let titles = ["전체", "소형견", "중형견", "대형견"]
-        let buttons = titles.map { title -> UIButton in
-            let btn = UIButton(type: .system)
-            btn.setTitle(title, for: .normal)
-            btn.titleLabel?.font = .systemFont(ofSize: 14, weight: .medium)
-            btn.layer.cornerRadius = 16
-            btn.layer.borderWidth = 1
-            btn.layer.borderColor = UIColor.systemGray4.cgColor
-            return btn
-        }
-        
-        let stack = UIStackView(arrangedSubviews: buttons)
+        let stack = UIStackView()
         stack.axis = .horizontal
         stack.spacing = 8
         stack.distribution = .fillEqually
@@ -88,12 +83,17 @@ class HomeVC: UIViewController, UICollectionViewDataSource, UICollectionViewDele
         return tv
     }()
     
+    // MARK: - Data
     private var recommendedShops: [Shop] = []
     private var nearbyShops: [Shop] = []
+    private var allShops: [Shop] = []
+    private var selectedCategory: String = "전체"
     
+    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        setupCategoryButtons()
         
         recommendedCollectionView.dataSource = self
         recommendedCollectionView.delegate = self
@@ -102,6 +102,8 @@ class HomeVC: UIViewController, UICollectionViewDataSource, UICollectionViewDele
         nearbyTableView.dataSource = self
         nearbyTableView.delegate = self
         
+        searchBar.delegate = self
+        
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tapGesture.cancelsTouchesInView = false
         view.addGestureRecognizer(tapGesture)
@@ -109,6 +111,7 @@ class HomeVC: UIViewController, UICollectionViewDataSource, UICollectionViewDele
         fetchShops()
     }
     
+    // MARK: - UI Setup
     private func setupUI() {
         view.backgroundColor = .systemBackground
         
@@ -159,10 +162,58 @@ class HomeVC: UIViewController, UICollectionViewDataSource, UICollectionViewDele
         nearbyTableView.snp.makeConstraints {
             $0.top.equalTo(nearbyLabel.snp.bottom).offset(8)
             $0.leading.trailing.equalToSuperview().inset(12)
-            $0.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).inset(0)
+            $0.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom)
         }
     }
     
+    // MARK: - 카테고리 버튼 생성
+    private func setupCategoryButtons() {
+        let categories = ["전체", "소형견", "중형견", "대형견"]
+        
+        categoryButtons = categories.map { title in
+            let btn = UIButton(type: .system)
+            btn.setTitle(title, for: .normal)
+            btn.titleLabel?.font = .systemFont(ofSize: 14, weight: .medium)
+            btn.layer.cornerRadius = 16
+            btn.layer.borderWidth = 1
+            btn.layer.borderColor = UIColor.systemGray4.cgColor
+            btn.addTarget(self, action: #selector(categoryTapped(_:)), for: .touchUpInside)
+            return btn
+        }
+        
+        categoryButtons.forEach { categoryStack.addArrangedSubview($0) }
+        updateCategoryButtonAppearance(selected: "전체")
+    }
+    
+    @objc private func categoryTapped(_ sender: UIButton) {
+        guard let title = sender.title(for: .normal) else { return }
+        selectedCategory = title
+        updateCategoryButtonAppearance(selected: title)
+        
+        // 필터링 로직
+        if title == "전체" {
+            nearbyShops = allShops
+        } else {
+            nearbyShops = allShops.filter { $0.category == title }
+        }
+        nearbyTableView.reloadData()
+    }
+    
+    private func updateCategoryButtonAppearance(selected: String) {
+        for button in categoryButtons {
+            if button.title(for: .normal) == selected {
+                button.backgroundColor = .systemBlue
+                button.setTitleColor(.white, for: .normal)
+                button.layer.borderColor = UIColor.systemBlue.cgColor
+            } else {
+                button.backgroundColor = .clear
+                button.setTitleColor(.label, for: .normal)
+                button.layer.borderColor = UIColor.systemGray4.cgColor
+            }
+        }
+    }
+    
+    // MARK: - Firestore
     private func fetchShops() {
         let db = Firestore.firestore()
         
@@ -172,13 +223,13 @@ class HomeVC: UIViewController, UICollectionViewDataSource, UICollectionViewDele
                 return
             }
             
-            guard let docments = snapshot?.documents else {
+            guard let documents = snapshot?.documents else {
                 print("Firestore snapshot이 비어있습니다.")
                 return
             }
             
-            let shops = docments.compactMap { Shop(document: $0) }
-            
+            let shops = documents.compactMap { Shop(document: $0) }
+            self.allShops = shops
             self.recommendedShops = shops.filter { $0.isRecommended }
             self.nearbyShops = shops
             
@@ -186,19 +237,36 @@ class HomeVC: UIViewController, UICollectionViewDataSource, UICollectionViewDele
                 self.recommendedCollectionView.reloadData()
                 self.nearbyTableView.reloadData()
             }
-            
         }
+    }
+    
+    // MARK: - 검색
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        guard !searchText.trimmingCharacters(in: .whitespaces).isEmpty else {
+            nearbyShops = allShops
+            nearbyTableView.reloadData()
+            return
+        }
+        
+        let lower = searchText.lowercased()
+        nearbyShops = allShops.filter {
+            $0.name.lowercased().contains(lower) ||
+            ($0.address?.lowercased().contains(lower) ?? false)
+        }
+        nearbyTableView.reloadData()
+    }
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
     }
     
     @objc private func dismissKeyboard() {
         view.endEditing(true)
     }
-}
-
-// MARK: - CollectionView DataSource
-extension HomeVC {
+    
+    // MARK: - CollectionView
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return recommendedShops.count
+        recommendedShops.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -209,10 +277,7 @@ extension HomeVC {
         cell.configure(with: shop)
         return cell
     }
-}
-
-// MARK: - CollectionView Delegate
-extension HomeVC {
+    
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let vc = ShopDetailVC()
         vc.shopId = recommendedShops[indexPath.item].id
@@ -220,10 +285,10 @@ extension HomeVC {
     }
 }
 
-// MARK: - TableView DataSource & Delgate
+// MARK: - TableView
 extension HomeVC: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return nearbyShops.count
+        nearbyShops.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -234,16 +299,11 @@ extension HomeVC: UITableViewDataSource, UITableViewDelegate {
         cell.configure(with: shop.name)
         return cell
     }
-}
-
-// MARK: - TableView Delegate
-extension HomeVC {
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        
         let vc = ShopDetailVC()
         vc.shopId = nearbyShops[indexPath.row].id
         navigationController?.pushViewController(vc, animated: true)
     }
 }
-

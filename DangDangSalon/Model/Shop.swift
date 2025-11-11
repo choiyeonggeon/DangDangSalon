@@ -21,6 +21,7 @@ struct Shop {
     let intro: String?
     let openTime: String?
     let closeTime: String?
+    let category: String?
     
     init?(document: DocumentSnapshot) {
         let data = document.data() ?? [:]
@@ -41,5 +42,6 @@ struct Shop {
         self.intro = data["intro"] as? String
         self.openTime = data["openTime"] as? String
         self.closeTime = data["closeTime"] as? String
+        self.category = data["category"] as? String
     }
 }
