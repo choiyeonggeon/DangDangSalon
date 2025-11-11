@@ -21,70 +21,84 @@ final class ReservationDetailVC: UIViewController {
     
     private let cardView: UIView = {
         let v = UIView()
-        v.backgroundColor = .secondarySystemBackground
-        v.layer.cornerRadius = 16
-        v.layer.masksToBounds = true
+        v.backgroundColor = .systemBackground
+        v.layer.cornerRadius = 20
+        v.layer.shadowColor = UIColor.black.withAlphaComponent(0.1).cgColor
+        v.layer.shadowOpacity = 0.15
+        v.layer.shadowRadius = 10
+        v.layer.shadowOffset = CGSize(width: 0, height: 5)
         return v
     }()
     
-    // 개별 항목들 (아이콘 + 라벨 스택)
-    private func makeRow(icon: String, title: String) -> (container: UIStackView, valueLabel: UILabel) {
-        let iconLabel = UILabel()
-        iconLabel.text = icon
-        iconLabel.font = .systemFont(ofSize: 16)
-        iconLabel.setContentHuggingPriority(.required, for: .horizontal)
-        
+    private func makeRow(title: String) -> (container: UIStackView, valueLabel: UILabel) {
         let titleLabel = UILabel()
         titleLabel.text = title
-        titleLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        titleLabel.font = .systemFont(ofSize: 15, weight: .medium)
         titleLabel.textColor = .secondaryLabel
-        titleLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
         
         let valueLabel = UILabel()
         valueLabel.text = "-"
-        valueLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+        valueLabel.font = .systemFont(ofSize: 17, weight: .semibold)
         valueLabel.textColor = .label
-        valueLabel.numberOfLines = 1
         valueLabel.textAlignment = .right
+        valueLabel.numberOfLines = 0
         
-        let topRow = UIStackView(arrangedSubviews: [iconLabel, titleLabel, UIView(), valueLabel])
-        topRow.axis = .horizontal
-        topRow.alignment = .center
-        topRow.spacing = 8
-        
-        return (topRow, valueLabel)
+        let row = UIStackView(arrangedSubviews: [titleLabel, UIView(), valueLabel])
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 10
+        return (row, valueLabel)
     }
     
-    // row들 보관
-    private lazy var shopRow = makeRow(icon: "🏪", title: "샵")
-    private lazy var menuRow = makeRow(icon: "💈", title: "메뉴")
-    private lazy var dateRow = makeRow(icon: "📅", title: "예약일")
-    private lazy var timeRow = makeRow(icon: "⏰", title: "시간")
-    private lazy var priceRow = makeRow(icon: "💰", title: "결제 금액")
-    private lazy var statusRow = makeRow(icon: "📌", title: "상태")
+    private lazy var shopRow   = makeRow(title: "샵명")
+    private lazy var menuRow   = makeRow(title: "이용 메뉴")
+    private lazy var dateRow   = makeRow(title: "예약일")
+    private lazy var timeRow   = makeRow(title: "예약 시간")
+    private lazy var priceRow  = makeRow(title: "결제 금액")
+    private lazy var statusRow = makeRow(title: "상태")
     
-    // 구분선 만드는 헬퍼
+    private let sectionHeader: UILabel = {
+        let label = UILabel()
+        label.text = "예약 정보"
+        label.font = .boldSystemFont(ofSize: 20)
+        label.textColor = .label
+        return label
+    }()
+    
     private func makeSeparator() -> UIView {
         let line = UIView()
-        line.backgroundColor = .separator
+        line.backgroundColor = .systemGray5
         line.snp.makeConstraints { $0.height.equalTo(1 / UIScreen.main.scale) }
         return line
     }
     
-    // 취소 버튼을 화면 하단 고정
     private let cancelButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setTitle("예약 취소하기", for: .normal)
         btn.backgroundColor = .systemRed
         btn.setTitleColor(.white, for: .normal)
-        btn.titleLabel?.font = .boldSystemFont(ofSize: 17)
-        btn.layer.cornerRadius = 12
+        btn.titleLabel?.font = .boldSystemFont(ofSize: 18)
+        btn.layer.cornerRadius = 14
+        btn.layer.shadowColor = UIColor.systemRed.cgColor
+        btn.layer.shadowOpacity = 0.25
+        btn.layer.shadowRadius = 6
+        btn.layer.shadowOffset = CGSize(width: 0, height: 4)
         return btn
+    }()
+    
+    private let guideLabel: UILabel = {
+        let lb = UILabel()
+        lb.text = "예약 2시간 전까지 무료 취소 가능합니다."
+        lb.font = .systemFont(ofSize: 13, weight: .regular)
+        lb.textColor = .secondaryLabel
+        lb.textAlignment = .center
+        lb.isHidden = true
+        return lb
     }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = UIColor.systemGroupedBackground
         title = "예약 상세"
         
         setupUI()
@@ -92,24 +106,27 @@ final class ReservationDetailVC: UIViewController {
     }
     
     private func setupUI() {
-        // add subviews
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
+        contentView.addSubview(sectionHeader)
         contentView.addSubview(cardView)
         view.addSubview(cancelButton)
+        view.addSubview(guideLabel)
         
-        // scrollView -> contentView 레이아웃
         scrollView.snp.makeConstraints {
             $0.top.leading.trailing.equalTo(view.safeAreaLayoutGuide)
             $0.bottom.equalTo(cancelButton.snp.top).offset(-16)
         }
-        
         contentView.snp.makeConstraints {
             $0.edges.equalToSuperview()
             $0.width.equalTo(scrollView.snp.width)
         }
         
-        // 카드 내부 스택
+        sectionHeader.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(32)
+            $0.leading.equalToSuperview().offset(24)
+        }
+        
         let stack = UIStackView(arrangedSubviews: [
             shopRow.container,
             makeSeparator(),
@@ -124,33 +141,30 @@ final class ReservationDetailVC: UIViewController {
             statusRow.container
         ])
         stack.axis = .vertical
-        stack.spacing = 12
+        stack.spacing = 18
         stack.isLayoutMarginsRelativeArrangement = true
-        stack.layoutMargins = UIEdgeInsets(top: 20, left: 16, bottom: 20, right: 16)
+        stack.layoutMargins = UIEdgeInsets(top: 24, left: 20, bottom: 24, right: 20)
         
         cardView.addSubview(stack)
-        
-        // cardView layout
         cardView.snp.makeConstraints {
-            $0.top.equalTo(contentView.snp.top).offset(24)
+            $0.top.equalTo(sectionHeader.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview().inset(20)
         }
+        stack.snp.makeConstraints { $0.edges.equalToSuperview() }
         
-        stack.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-        }
-        
-        // contentView bottom anchor
         contentView.snp.makeConstraints {
-            $0.bottom.equalTo(cardView.snp.bottom).offset(24)
+            $0.bottom.equalTo(cardView.snp.bottom).offset(40)
         }
         
-        // cancel button layout (하단 고정)
-        view.addSubview(cancelButton)
         cancelButton.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(16)
-            $0.height.equalTo(52)
+            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(20)
+            $0.height.equalTo(54)
+        }
+        
+        guideLabel.snp.makeConstraints {
+            $0.top.equalTo(cancelButton.snp.bottom).offset(4)
+            $0.centerX.equalToSuperview()
         }
         
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
@@ -161,23 +175,31 @@ final class ReservationDetailVC: UIViewController {
         
         shopRow.valueLabel.text   = r.shopName
         menuRow.valueLabel.text   = r.menus.joined(separator: ", ")
-        dateRow.valueLabel.text   = r.dateString   // dateString은 너가 이미 extension으로 만든 거 사용
+        dateRow.valueLabel.text   = r.dateString
         timeRow.valueLabel.text   = r.time
         priceRow.valueLabel.text  = "\(r.priceString)"
         statusRow.valueLabel.text = statusText(for: r.status)
         
-        // 예약 상태에 따라 취소 버튼 숨김/색상 조정
+        // 상태별 버튼 UI 조정
         switch r.status {
         case "pending":
             cancelButton.isHidden = false
             cancelButton.backgroundColor = .systemRed
             cancelButton.setTitle("예약 취소하기", for: .normal)
+            guideLabel.isHidden = false
         case "completed":
-            cancelButton.isHidden = true
+            cancelButton.isHidden = false
+            cancelButton.backgroundColor = .systemBlue
+            cancelButton.setTitle("리뷰 작성하기", for: .normal)
+            guideLabel.isHidden = true
+            cancelButton.removeTarget(nil, action: nil, for: .allEvents)
+            cancelButton.addTarget(self, action: #selector(writeReviewTapped), for: .touchUpInside)
         case "cancelled":
             cancelButton.isHidden = true
+            guideLabel.isHidden = true
         default:
             cancelButton.isHidden = true
+            guideLabel.isHidden = true
         }
     }
     
@@ -204,39 +226,55 @@ final class ReservationDetailVC: UIViewController {
         alert.addAction(UIAlertAction(title: "취소하기", style: .destructive) { _ in
             self.cancelReservation(userId: userId, reservation: reservation)
         })
-        
         present(alert, animated: true)
     }
     
+    // MARK: - 리뷰 작성
+    @objc private func writeReviewTapped() {
+        let reviewVC = ReviewWriteVC()
+        reviewVC.reservation = reservation
+        navigationController?.pushViewController(reviewVC, animated: true)
+    }
+    
     private func cancelReservation(userId: String, reservation: Reservation) {
+        let shopId = reservation.shopId
+        
+        // 예약된 날짜 문서 key, 시간 key
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dateKey = formatter.string(from: reservation.date)
+        let timeKey = reservation.time
+        
+        // 1️⃣ 사용자 내 예약 문서
         let userRef = db.collection("users")
             .document(userId)
             .collection("reservations")
             .document(reservation.id)
         
-        let ownerRef = db.collection("reservations")
-            .document(reservation.id) // ✅ 루트에도 같은 ID로 저장되어 있음
+        // 2️⃣ 샵 쪽 예약 문서 (dot notation으로 필드 업데이트)
+        let shopRef = db.collection("shops")
+            .document(shopId)
+            .collection("reservations")
+            .document(dateKey)
         
-        // 동시에 두 경로 업데이트
         let batch = db.batch()
         batch.updateData(["status": "cancelled"], forDocument: userRef)
-        batch.updateData(["status": "cancelled"], forDocument: ownerRef)
+        batch.updateData(["\(timeKey).status": "cancelled"], forDocument: shopRef)
         
         batch.commit { error in
             if let error = error {
-                print("예약 취소 실패:", error.localizedDescription)
+                print("❌ 예약 취소 실패:", error.localizedDescription)
                 self.showAlert(title: "오류", message: "예약 취소에 실패했습니다.")
                 return
             }
-            
-            print("✅ 예약 취소 완료 (양쪽 동기화)")
+            print("✅ 예약 취소 성공")
             self.showAlert(title: "취소 완료", message: "예약이 취소되었습니다.") {
                 NotificationCenter.default.post(name: .reservationCancelled, object: nil)
                 self.navigationController?.popViewController(animated: true)
             }
         }
     }
-    
+
     private func showAlert(title: String, message: String, completion: (() -> Void)? = nil) {
         let alert = UIAlertController(
             title: title,

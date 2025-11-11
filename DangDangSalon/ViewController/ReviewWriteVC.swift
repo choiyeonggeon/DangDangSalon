@@ -13,6 +13,7 @@ final class ReviewWriteVC: UIViewController {
     
     // MARK: - Properties
     var shopId: String?
+    var reservation: Reservation?
     var reservationPath: (userId: String, reservationId: String)?
     
     private let db = Firestore.firestore()
@@ -84,6 +85,11 @@ final class ReviewWriteVC: UIViewController {
         view.backgroundColor = .systemBackground
         setupLayout()
         textView.delegate = self
+        
+        if let r = reservation {
+            print("리뷰 작성 대상 샵:", r.shopName)
+        }
+        
         submitButton.addTarget(self, action: #selector(submitTapped), for: .touchUpInside)
     }
     

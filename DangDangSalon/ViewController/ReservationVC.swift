@@ -23,7 +23,9 @@ final class ReservationVC: UIViewController {
     
     // 현재 선택 상태
     private var selectedTime: String?
-    private var selectedMenus: [(name: String, price: Int)] = []
+    private var selectedMenus: [(name: String, price: Int)] = [] {
+        didSet { updateTotalPrice() }
+    }
     
     // MARK: - UI
     private let titleLabel: UILabel = {
@@ -93,6 +95,15 @@ final class ReservationVC: UIViewController {
         let lb = UILabel()
         lb.text = "메뉴 선택"
         lb.font = .boldSystemFont(ofSize: 16)
+        return lb
+    }()
+    
+    private let totalPriceLabel: UILabel = {
+        let lb = UILabel()
+        lb.text = "총 결제금액: 0원"
+        lb.font = .boldSystemFont(ofSize: 17)
+        lb.textColor = .systemBlue
+        lb.textAlignment = .right
         return lb
     }()
     
@@ -213,17 +224,22 @@ final class ReservationVC: UIViewController {
     
     // MARK: - Firestore: 날짜별 이미 예약된 슬롯
     private func loadReservedTimes(for date: Date) {
+        guard let shopId = shopId else { return }
+        
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let dateKey = formatter.string(from: date)
         
-        db.collection("reservations")
+        // ✅ 수정: 루트 reservations → shops/{shopId}/reservations/{dateKey}
+        db.collection("shops")
+            .document(shopId)
+            .collection("reservations")
             .document(dateKey)
             .getDocument { [weak self] snapshot, _ in
                 guard let self = self else { return }
                 
-                let data = snapshot?.data() ?? [:]
-                // ["10:00": {...}, "10:30": {...}]
+                // ✅ Firestore 문서를 딕셔너리로 안전하게 캐스팅
+                let data = snapshot?.data() as? [String: Any] ?? [:]
                 self.reservedTimes = Array(data.keys)
                 
                 DispatchQueue.main.async {
@@ -284,7 +300,6 @@ final class ReservationVC: UIViewController {
                 
                 row.addArrangedSubview(btn)
             }
-            
             timeStackView.addArrangedSubview(row)
         }
     }
@@ -331,16 +346,14 @@ final class ReservationVC: UIViewController {
             
             menuStackView.addArrangedSubview(btn)
         }
+        updateTotalPrice()
     }
     
-    // MARK: - Layout
     private func setupLayout() {
         let scrollView = UIScrollView()
         let contentView = UIView()
-        
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
-        
         scrollView.snp.makeConstraints { $0.edges.equalTo(view.safeAreaLayoutGuide) }
         contentView.snp.makeConstraints {
             $0.edges.equalToSuperview()
@@ -357,6 +370,7 @@ final class ReservationVC: UIViewController {
             timeStackView,
             menuSectionLabel,
             menuStackView,
+            totalPriceLabel,
             requestField,
             confirmButton
         ].forEach { contentView.addSubview($0) }
@@ -365,50 +379,45 @@ final class ReservationVC: UIViewController {
             $0.top.equalTo(contentView).offset(16)
             $0.centerX.equalToSuperview()
         }
-        
         nameField.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(24)
             $0.leading.trailing.equalToSuperview().inset(24)
             $0.height.equalTo(44)
         }
-        
         phoneField.snp.makeConstraints {
             $0.top.equalTo(nameField.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview().inset(24)
             $0.height.equalTo(44)
         }
-        
         datePicker.snp.makeConstraints {
             $0.top.equalTo(phoneField.snp.bottom).offset(20)
             $0.leading.trailing.equalToSuperview().inset(24)
         }
-        
         timeSectionLabel.snp.makeConstraints {
             $0.top.equalTo(datePicker.snp.bottom).offset(24)
             $0.leading.trailing.equalToSuperview().inset(24)
         }
-        
         timeStackView.snp.makeConstraints {
             $0.top.equalTo(timeSectionLabel.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview().inset(24)
         }
-        
         menuSectionLabel.snp.makeConstraints {
             $0.top.equalTo(timeStackView.snp.bottom).offset(24)
             $0.leading.trailing.equalToSuperview().inset(24)
         }
-        
         menuStackView.snp.makeConstraints {
             $0.top.equalTo(menuSectionLabel.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview().inset(24)
         }
-        
+        totalPriceLabel.snp.makeConstraints {
+            $0.top.equalTo(menuStackView.snp.bottom).offset(12)
+            $0.trailing.equalToSuperview().inset(24)
+        }
         requestField.snp.makeConstraints {
-            $0.top.equalTo(menuStackView.snp.bottom).offset(24)
+            $0.top.equalTo(totalPriceLabel.snp.bottom).offset(24)
             $0.leading.trailing.equalToSuperview().inset(24)
             $0.height.equalTo(60)
         }
-        
         confirmButton.snp.makeConstraints {
             $0.top.equalTo(requestField.snp.bottom).offset(30)
             $0.leading.trailing.equalToSuperview().inset(24)
@@ -417,21 +426,27 @@ final class ReservationVC: UIViewController {
         }
     }
     
-    // MARK: - Actions
+    private func updateTotalPrice() {
+        let total = selectedMenus.map { $0.price }.reduce(0, +)
+        let formatted = NumberFormatter.localizedString(from: NSNumber(value: total), number: .decimal)
+        totalPriceLabel.text = "총 결제금액: \(formatted)원"
+    }
+    
+    // MARK: - 예약 등록
     @objc private func confirmTapped() {
         guard let name = nameField.text, !name.isEmpty,
               let phone = phoneField.text, !phone.isEmpty,
               let shopId = shopId,
               let shopName = shopName,
               let time = selectedTime,
-              !selectedMenus.isEmpty else {
+              !selectedMenus.isEmpty,
+              let userId = Auth.auth().currentUser?.uid else {
             showAlert(title: "입력 오류", message: "모든 정보를 입력해주세요.")
             return
         }
         
         let selectedDate = datePicker.date
         let requestText = (requestField.textColor == .systemGray3) ? "" : requestField.text
-        
         let menuNames = selectedMenus.map { $0.name }
         let totalPrice = selectedMenus.map { $0.price }.reduce(0, +)
         
@@ -439,72 +454,66 @@ final class ReservationVC: UIViewController {
         formatter.dateFormat = "yyyy-MM-dd"
         let dateKey = formatter.string(from: selectedDate)
         
-        // ✅ 1️⃣ 날짜별 예약 슬롯 관리용 (예약된 시간 마킹)
-        db.collection("reservations")
-            .document(dateKey)
-            .setData([
-                time: [
-                    "name": name,
-                    "phone": phone,
-                    "menus": menuNames,
-                    "totalPrice": totalPrice,
-                    "request": requestText ?? "",
-                    "timestamp": Timestamp(date: Date()),
-                    "shopId": shopId,
-                    "shopName": shopName
-                ]
-            ], merge: true)
-        
-        // ✅ 2️⃣ 유저 개인 히스토리
-        guard let userId = Auth.auth().currentUser?.uid else { return }
-        let userRef = db.collection("users")
-            .document(userId)
+        // ✅ 수정: 샵별 예약 문서 경로로 변경
+        let shopDateRef = db.collection("shops")
+            .document(shopId)
             .collection("reservations")
-            .document()
+            .document(dateKey)
         
-        let resData: [String: Any] = [
-            "id": userRef.documentID,
-            "userId": userId,
-            "name": name,
-            "phone": phone,
-            "shopId": shopId,
-            "shopName": shopName,
-            "menus": menuNames,
-            "totalPrice": totalPrice,
-            "date": Timestamp(date: selectedDate),
-            "time": time,
-            "timestamp": Timestamp(date: Date()), // ✅ 추가
-            "status": "pending",
-            "reviewWritten": false,
-            "createdAt": Timestamp(date: Date())
-        ]
-        
-        userRef.setData(resData) { error in
-            if let error = error {
-                print("예약 저장 실패:", error.localizedDescription)
-            } else {
-                print("✅ 고객 예약 저장 완료")
+        // ✅ 중복 확인
+        shopDateRef.getDocument { [weak self] snapshot, _ in
+            guard let self = self else { return }
+            let existing = snapshot?.data() as? [String: Any] ?? [:]
+            
+            if existing.keys.contains(time) {
+                self.showAlert(title: "예약 불가", message: "이미 선택된 시간입니다.")
+                return
             }
+            
+            // ✅ 예약 데이터
+            let reservationData: [String: Any] = [
+                "name": name,
+                "phone": phone,
+                "menus": menuNames,
+                "totalPrice": totalPrice,
+                "request": requestText ?? "",
+                "timestamp": Timestamp(date: Date()),
+                "shopId": shopId,
+                "shopName": shopName,
+                "userId": userId,
+                "status": "pending",
+                "reviewWritten": false
+            ]
+            
+            // ✅ 1️⃣ 샵별 예약 컬렉션에 해당 시간 추가
+            shopDateRef.setData([time: reservationData], merge: true)
+            
+            // ✅ 2️⃣ 유저 예약 내역 저장
+            let userRef = self.db.collection("users")
+                .document(userId)
+                .collection("reservations")
+                .document()
+            
+            let resData = reservationData.merging([
+                "id": userRef.documentID,
+                "date": Timestamp(date: selectedDate),
+                "time": time
+            ]) { (_, new) in new }
+            
+            userRef.setData(resData)
+            
+            // ✅ 3️⃣ 비활성화 반영
+            self.reservedTimes.append(time)
+            self.buildTimeButtons()
+            
+            // ✅ 4️⃣ 성공 알림
+            self.showAlert(
+                title: "예약 완료",
+                message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))"
+            )
         }
-        
-        // ✅ 3️⃣ 사장님용 루트 컬렉션에도 복제 저장 (사장님 앱용)
-        db.collection("reservations")
-            .document(userRef.documentID)
-            .setData(resData) { error in
-                if let error = error {
-                    print("사장님용 예약 복사 실패:", error.localizedDescription)
-                } else {
-                    print("✅ 사장님용 예약 복사 완료")
-                }
-            }
-        
-        // ✅ 4️⃣ 성공 알림
-        showAlert(
-            title: "예약 완료",
-            message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))"
-        )
     }
-    
+
     @objc private func dateChanged() {
         loadReservedTimes(for: datePicker.date)
     }

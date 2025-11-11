@@ -16,7 +16,7 @@ struct Reservation {
     let totalPrice: Int         // ✅ 총 금액
     let date: Date
     let time: String
-    let status: String
+    var status: String
     let reviewWritten: Bool
     
     // Firestore → 모델 변환
@@ -48,11 +48,13 @@ struct Reservation {
         return f.string(from: date)
     }
     
+    // MARK: - 금액 포맷
     var priceString: String {
         return "\(totalPrice.formatted())원"
     }
 }
 
+// MARK: - Firestore DocumentSnapshot 변환
 extension Reservation {
     init?(document: DocumentSnapshot) {
         let data = document.data() ?? [:]
