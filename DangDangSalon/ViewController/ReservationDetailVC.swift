@@ -12,7 +12,14 @@ import FirebaseFirestore
 
 final class ReservationDetailVC: UIViewController {
     
-    var reservation: Reservation?
+    var reservation: Reservation? {
+        didSet {
+            if isViewLoaded {
+                configureData()
+            }
+        }
+    }
+    
     private let db = Firestore.firestore()
     
     // MARK: - UI
@@ -182,21 +189,24 @@ final class ReservationDetailVC: UIViewController {
         
         // 상태별 버튼 UI 조정
         switch r.status {
-        case "pending":
+        case "예약 중":
             cancelButton.isHidden = false
             cancelButton.backgroundColor = .systemRed
             cancelButton.setTitle("예약 취소하기", for: .normal)
             guideLabel.isHidden = false
-        case "completed":
+
+        case "이용 완료":
             cancelButton.isHidden = false
             cancelButton.backgroundColor = .systemBlue
             cancelButton.setTitle("리뷰 작성하기", for: .normal)
             guideLabel.isHidden = true
             cancelButton.removeTarget(nil, action: nil, for: .allEvents)
             cancelButton.addTarget(self, action: #selector(writeReviewTapped), for: .touchUpInside)
-        case "cancelled":
+
+        case "취소":
             cancelButton.isHidden = true
             guideLabel.isHidden = true
+
         default:
             cancelButton.isHidden = true
             guideLabel.isHidden = true
@@ -205,9 +215,9 @@ final class ReservationDetailVC: UIViewController {
     
     private func statusText(for raw: String) -> String {
         switch raw {
-        case "pending":   return "예약 중"
-        case "completed": return "이용 완료"
-        case "cancelled": return "취소됨"
+        case "예약 중":   return "예약 중"
+        case "이용 완료": return "이용 완료"
+        case "취소":     return "취소됨"
         default:          return raw
         }
     }
@@ -237,37 +247,16 @@ final class ReservationDetailVC: UIViewController {
     }
     
     private func cancelReservation(userId: String, reservation: Reservation) {
-        let shopId = reservation.shopId
-        
-        // 예약된 날짜 문서 key, 시간 key
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let dateKey = formatter.string(from: reservation.date)
-        let timeKey = reservation.time
-        
-        // 1️⃣ 사용자 내 예약 문서
-        let userRef = db.collection("users")
-            .document(userId)
-            .collection("reservations")
-            .document(reservation.id)
-        
-        // 2️⃣ 샵 쪽 예약 문서 (dot notation으로 필드 업데이트)
-        let shopRef = db.collection("shops")
-            .document(shopId)
-            .collection("reservations")
-            .document(dateKey)
-        
-        let batch = db.batch()
-        batch.updateData(["status": "cancelled"], forDocument: userRef)
-        batch.updateData(["\(timeKey).status": "cancelled"], forDocument: shopRef)
-        
-        batch.commit { error in
-            if let error = error {
-                print("❌ 예약 취소 실패:", error.localizedDescription)
+        let doc = db.collection("reservations").document(reservation.id)
+
+        doc.updateData(["status": "취소"]) { [weak self] err in
+            guard let self = self else { return }
+            if let err = err {
+                print("예약 취소 실패:", err.localizedDescription)
                 self.showAlert(title: "오류", message: "예약 취소에 실패했습니다.")
                 return
             }
-            print("✅ 예약 취소 성공")
+
             self.showAlert(title: "취소 완료", message: "예약이 취소되었습니다.") {
                 NotificationCenter.default.post(name: .reservationCancelled, object: nil)
                 self.navigationController?.popViewController(animated: true)

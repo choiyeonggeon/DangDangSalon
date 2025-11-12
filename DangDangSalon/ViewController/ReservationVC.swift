@@ -153,32 +153,16 @@ final class ReservationVC: UIViewController {
     // MARK: - Firestore: 메뉴 불러오기
     private func fetchMenus() {
         guard let shopId = shopId else { return }
-        
-        db.collection("shops")
-            .document(shopId)
-            .collection("menus")
-            .getDocuments { [weak self] snapshot, error in
+        db.collection("shops").document(shopId).collection("menus")
+            .getDocuments { [weak self] snapshot, _ in
                 guard let self = self else { return }
-                
-                if let error = error {
-                    print("메뉴 불러오기 실패:", error.localizedDescription)
-                    return
-                }
-                
                 self.menus = snapshot?.documents.compactMap { doc in
                     guard let name = doc["name"] as? String,
                           let price = doc["price"] as? Int else { return nil }
                     return (name, price)
                 } ?? []
-                
-                // 기본 선택값 (첫 번째)
-                if let firstMenu = self.menus.first {
-                    self.selectedMenus = [firstMenu]
-                }
-                
-                DispatchQueue.main.async {
-                    self.buildMenuButtons()
-                }
+                if let first = self.menus.first { self.selectedMenus = [first] }
+                DispatchQueue.main.async { self.buildMenuButtons() }
             }
     }
     
@@ -186,116 +170,102 @@ final class ReservationVC: UIViewController {
     private func fetchAvailableTimes() {
         guard let shopId = shopId else { return }
         
-        db.collection("shops")
-            .document(shopId)
-            .getDocument { [weak self] snapshot, error in
-                guard let self = self else { return }
-                
-                if let error = error {
-                    print("예약 가능 시간 불러오기 실패:", error.localizedDescription)
-                    return
-                }
-                
-                if let data = snapshot?.data(),
-                   let times = data["availableTimes"] as? [String] {
-                    self.availableTimes = times
-                } else {
-                    self.availableTimes = self.generateDefaultTimes()
-                }
-                
-                // 기본 선택값 (첫 번째 가능 시간)
-                self.selectedTime = self.availableTimes.first
-                
-                DispatchQueue.main.async {
-                    self.buildTimeButtons()
-                }
+        db.collection("shops").document(shopId).getDocument { [weak self] snap, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("❌ 시간대 불러오기 실패:", error.localizedDescription)
+                self.availableTimes = self.generateDefaultTimes()
+            } else if let times = snap?.data()?["availableTimes"] as? [String], !times.isEmpty {
+                self.availableTimes = times
+            } else {
+                self.availableTimes = self.generateDefaultTimes()
             }
+            
+            print("📄 Firestore availableTimes:", self.availableTimes)
+            
+            self.selectedTime = self.availableTimes.first
+            DispatchQueue.main.async {
+                self.buildTimeButtons()
+            }
+        }
     }
-    
+
     // 기본시간 fallback
     private func generateDefaultTimes() -> [String] {
-        var times: [String] = []
-        for hour in 10...22 {
-            times.append(String(format: "%02d:00", hour))
-            times.append(String(format: "%02d:30", hour))
+        var result: [String] = []
+        for h in 10...22 {
+            result.append(String(format: "%02d:00", h))
+            result.append(String(format: "%02d:30", h))
         }
-        return times
+        return result
     }
     
     // MARK: - Firestore: 날짜별 이미 예약된 슬롯
     private func loadReservedTimes(for date: Date) {
         guard let shopId = shopId else { return }
         
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let dateKey = formatter.string(from: date)
+        let startOfDay = Calendar.current.startOfDay(for: date)
+        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
         
-        // ✅ 수정: 루트 reservations → shops/{shopId}/reservations/{dateKey}
-        db.collection("shops")
-            .document(shopId)
-            .collection("reservations")
-            .document(dateKey)
-            .getDocument { [weak self] snapshot, _ in
+        db.collection("reservations")
+            .whereField("shopId", isEqualTo: shopId)
+            .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: startOfDay))
+            .whereField("date", isLessThan: Timestamp(date: endOfDay))
+            .getDocuments { [weak self] snapshot, error in
                 guard let self = self else { return }
                 
-                // ✅ Firestore 문서를 딕셔너리로 안전하게 캐스팅
-                let data = snapshot?.data() as? [String: Any] ?? [:]
-                self.reservedTimes = Array(data.keys)
+                if let error = error {
+                    print("❌ 예약 시간 불러오기 실패:", error.localizedDescription)
+                    return
+                }
+                
+                // ✅ 예약된 time만 추출해서 reservedTimes에 저장
+                self.reservedTimes = snapshot?.documents.compactMap { $0["time"] as? String } ?? []
                 
                 DispatchQueue.main.async {
-                    self.buildTimeButtons() // 다시 그려주기 (비활성화 표시 반영)
+                    self.buildTimeButtons() // 버튼 다시 그림 → 예약된 시간 비활성화 반영
                 }
             }
     }
-    
+
     // MARK: - UI 생성: 시간 버튼들
     private func buildTimeButtons() {
-        // 기존 버튼들 제거
         timeStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        
-        // availableTimes 를 2~3개씩 가로줄로 배치
         let chunkSize = 3
-        for chunkStart in stride(from: 0, to: availableTimes.count, by: chunkSize) {
-            let rowTimes = Array(availableTimes[chunkStart..<min(chunkStart+chunkSize, availableTimes.count)])
-            
+        for i in stride(from: 0, to: availableTimes.count, by: chunkSize) {
+            let rowTimes = Array(availableTimes[i..<min(i+chunkSize, availableTimes.count)])
             let row = UIStackView()
             row.axis = .horizontal
             row.spacing = 8
             row.distribution = .fillEqually
-            
             for time in rowTimes {
-                let isReserved = reservedTimes.contains(time)
-                let isSelected = (time == selectedTime)
-                
                 let btn = UIButton(type: .system)
+                let isReserved = reservedTimes.contains(time)
+                let isSelected = time == selectedTime
                 btn.setTitle(time, for: .normal)
                 btn.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
                 btn.layer.cornerRadius = 8
                 btn.layer.borderWidth = 1
+                btn.heightAnchor.constraint(equalToConstant: 44).isActive = true
                 
                 if isReserved {
-                    // 이미 예약된 슬롯 -> 회색, 비활성
                     btn.backgroundColor = .systemGray5
                     btn.setTitleColor(.systemGray, for: .normal)
                     btn.layer.borderColor = UIColor.systemGray4.cgColor
                     btn.isEnabled = false
                 } else if isSelected {
-                    // 내가 고른 시간 -> 파란 느낌
                     btn.backgroundColor = .systemBlue
                     btn.setTitleColor(.white, for: .normal)
                     btn.layer.borderColor = UIColor.systemBlue.cgColor
                 } else {
-                    // 아직 안 고른 가능 시간
                     btn.backgroundColor = .clear
                     btn.setTitleColor(.label, for: .normal)
                     btn.layer.borderColor = UIColor.systemGray4.cgColor
                 }
-                
-                btn.heightAnchor.constraint(equalToConstant: 44).isActive = true
                 btn.addAction(UIAction { [weak self] _ in
-                    guard let self = self else { return }
-                    self.selectedTime = time
-                    self.buildTimeButtons() // 다시 그려서 선택 반영
+                    self?.selectedTime = time
+                    self?.buildTimeButtons()
                 }, for: .touchUpInside)
                 
                 row.addArrangedSubview(btn)
@@ -450,68 +420,56 @@ final class ReservationVC: UIViewController {
         let menuNames = selectedMenus.map { $0.name }
         let totalPrice = selectedMenus.map { $0.price }.reduce(0, +)
         
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let dateKey = formatter.string(from: selectedDate)
+        let start = Calendar.current.startOfDay(for: selectedDate)
+        let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
         
-        // ✅ 수정: 샵별 예약 문서 경로로 변경
-        let shopDateRef = db.collection("shops")
-            .document(shopId)
-            .collection("reservations")
-            .document(dateKey)
-        
-        // ✅ 중복 확인
-        shopDateRef.getDocument { [weak self] snapshot, _ in
-            guard let self = self else { return }
-            let existing = snapshot?.data() as? [String: Any] ?? [:]
-            
-            if existing.keys.contains(time) {
-                self.showAlert(title: "예약 불가", message: "이미 선택된 시간입니다.")
-                return
+        db.collection("reservations")
+            .whereField("shopId", isEqualTo: shopId)
+            .whereField("time", isEqualTo: time)
+            .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: start))
+            .whereField("date", isLessThan: Timestamp(date: end))
+            .getDocuments { [weak self] snap, _ in
+                guard let self = self else { return }
+                if let snap = snap, !snap.isEmpty {
+                    self.showAlert(title: "예약 불가", message: "이미 선택된 시간입니다.")
+                    return
+                }
+                
+                self.db.collection("shops").document(shopId).getDocument { shopSnap, _ in
+                    let ownerId = shopSnap?.data()?["ownerId"] as? String ?? ""
+                    let reservationId = UUID().uuidString
+                    let data: [String: Any] = [
+                        "id": reservationId,
+                        "userId": userId,
+                        "userName": name,
+                        "shopId": shopId,
+                        "shopName": shopName,
+                        "ownerId": ownerId,
+                        "menus": menuNames,
+                        "totalPrice": totalPrice,
+                        "date": Timestamp(date: selectedDate),
+                        "time": time,
+                        "status": "예약 요청",
+                        "createdAt": Timestamp(date: Date()),
+                        "phone": phone,
+                        "request": requestText ?? "",
+                        "reviewWritten": false
+                    ]
+                    
+                    self.db.collection("reservations").document(reservationId).setData(data) { err in
+                        if let err = err {
+                            print("예약 실패:", err.localizedDescription)
+                            self.showAlert(title: "오류", message: "예약에 실패했습니다.")
+                            return
+                        }
+                        self.reservedTimes.append(time)
+                        self.buildTimeButtons()
+                        self.loadReservedTimes(for: selectedDate)
+                        self.showAlert(title: "예약 완료", message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))")
+                        
+                    }
+                }
             }
-            
-            // ✅ 예약 데이터
-            let reservationData: [String: Any] = [
-                "name": name,
-                "phone": phone,
-                "menus": menuNames,
-                "totalPrice": totalPrice,
-                "request": requestText ?? "",
-                "timestamp": Timestamp(date: Date()),
-                "shopId": shopId,
-                "shopName": shopName,
-                "userId": userId,
-                "status": "pending",
-                "reviewWritten": false
-            ]
-            
-            // ✅ 1️⃣ 샵별 예약 컬렉션에 해당 시간 추가
-            shopDateRef.setData([time: reservationData], merge: true)
-            
-            // ✅ 2️⃣ 유저 예약 내역 저장
-            let userRef = self.db.collection("users")
-                .document(userId)
-                .collection("reservations")
-                .document()
-            
-            let resData = reservationData.merging([
-                "id": userRef.documentID,
-                "date": Timestamp(date: selectedDate),
-                "time": time
-            ]) { (_, new) in new }
-            
-            userRef.setData(resData)
-            
-            // ✅ 3️⃣ 비활성화 반영
-            self.reservedTimes.append(time)
-            self.buildTimeButtons()
-            
-            // ✅ 4️⃣ 성공 알림
-            self.showAlert(
-                title: "예약 완료",
-                message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))"
-            )
-        }
     }
 
     @objc private func dateChanged() {

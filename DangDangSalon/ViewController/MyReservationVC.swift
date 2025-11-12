@@ -94,31 +94,19 @@ final class MyReservationVC: UIViewController {
     
     // MARK: - Firestore: 실시간 예약 리스트 감시
     @objc private func fetchReservations() {
-        guard let userId = Auth.auth().currentUser?.uid else {
-            print("로그인 정보 없음")
-            return
-        }
+        guard let userId = Auth.auth().currentUser?.uid else { return }
         
-        // ✅ addSnapshotListener로 실시간 감시
-        db.collection("users")
-            .document(userId)
-            .collection("reservations")
+        db.collection("reservations")
+            .whereField("userId", isEqualTo: userId)
             .order(by: "date", descending: true)
-            .addSnapshotListener { [weak self] snapshot, error in
+            .getDocuments { [weak self] snapshot, error in
                 guard let self = self else { return }
-                
                 if let error = error {
                     print("예약 불러오기 실패:", error.localizedDescription)
                     self.showEmptyState()
                     return
                 }
-                
-                guard let docs = snapshot?.documents else {
-                    self.showEmptyState()
-                    return
-                }
-                
-                self.reservations = docs.compactMap { Reservation(document: $0) }
+                self.reservations = snapshot?.documents.compactMap { Reservation(document: $0) } ?? []
                 
                 DispatchQueue.main.async {
                     if self.reservations.isEmpty {

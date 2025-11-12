@@ -10,56 +10,47 @@ import FirebaseFirestore
 
 struct Reservation {
     let id: String
+    let userId: String
+    let userName: String
     let shopId: String
     let shopName: String
-    let menus: [String]         // ✅ 배열로 변경
-    let totalPrice: Int         // ✅ 총 금액
+    let ownerId: String
+    let menus: [String]
+    let totalPrice: Int
     let date: Date
     let time: String
     var status: String
-    let reviewWritten: Bool
-    
-    // Firestore → 모델 변환
-    init?(data: [String: Any]) {
-        guard let id = data["id"] as? String,
-              let shopId = data["shopId"] as? String,
-              let shopName = data["shopName"] as? String,
-              let menus = data["menus"] as? [String],
-              let totalPrice = data["totalPrice"] as? Int,
-              let timestamp = data["date"] as? Timestamp,
-              let time = data["time"] as? String,
-              let status = data["status"] as? String,
-              let reviewWritten = data["reviewWritten"] as? Bool else { return nil }
-        
-        self.id = id
-        self.shopId = shopId
-        self.shopName = shopName
-        self.menus = menus
-        self.totalPrice = totalPrice
-        self.date = timestamp.dateValue()
-        self.time = time
-        self.status = status
-        self.reviewWritten = reviewWritten
+    let createdAt: Date
+    var reviewWritten: Bool     // ✅ 리뷰 작성 여부 (false가 기본)
+
+    // MARK: - Firestore 문서 → 모델 변환
+    init?(document: DocumentSnapshot) {
+        let data = document.data() ?? [:]
+        id = document.documentID
+        userId = data["userId"] as? String ?? ""
+        userName = data["userName"] as? String ?? ""
+        shopId = data["shopId"] as? String ?? ""
+        shopName = data["shopName"] as? String ?? ""
+        ownerId = data["ownerId"] as? String ?? ""
+        menus = data["menus"] as? [String] ?? []
+        totalPrice = data["totalPrice"] as? Int ?? 0
+        date = (data["date"] as? Timestamp)?.dateValue() ?? Date()
+        time = data["time"] as? String ?? ""
+        status = data["status"] as? String ?? "예약 요청"
+        createdAt = (data["createdAt"] as? Timestamp)?.dateValue()
+                 ?? (data["timestamp"] as? Timestamp)?.dateValue()
+                 ?? Date()
+        reviewWritten = data["reviewWritten"] as? Bool ?? false   // ✅ 기본값 false
     }
-    
+
+    // MARK: - UI용 포맷터
     var dateString: String {
         let f = DateFormatter()
         f.dateFormat = "yyyy년 M월 d일"
         return f.string(from: date)
     }
-    
-    // MARK: - 금액 포맷
-    var priceString: String {
-        return "\(totalPrice.formatted())원"
-    }
-}
 
-// MARK: - Firestore DocumentSnapshot 변환
-extension Reservation {
-    init?(document: DocumentSnapshot) {
-        let data = document.data() ?? [:]
-        var fullData = data
-        fullData["id"] = document.documentID
-        self.init(data: fullData)
+    var priceString: String {
+        "\(NumberFormatter.localizedString(from: NSNumber(value: totalPrice), number: .decimal))원"
     }
 }
