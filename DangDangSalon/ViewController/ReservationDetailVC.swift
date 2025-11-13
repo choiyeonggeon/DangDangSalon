@@ -93,6 +93,21 @@ final class ReservationDetailVC: UIViewController {
         return btn
     }()
     
+    private let reviewButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitle("리뷰 작성하기", for: .normal)
+        btn.backgroundColor = .systemBlue
+        btn.setTitleColor(.white, for: .normal)
+        btn.titleLabel?.font = .boldSystemFont(ofSize: 18)
+        btn.layer.cornerRadius = 14
+        btn.layer.shadowRadius = 6
+        btn.layer.shadowOpacity = 0.25
+        btn.layer.shadowColor = UIColor.systemBlue.cgColor
+        btn.layer.shadowOffset = CGSize(width: 0, height: 4)
+        btn.isHidden = true
+        return btn
+    }()
+    
     private let guideLabel: UILabel = {
         let lb = UILabel()
         lb.text = "예약 2시간 전까지만 취소 가능하며,\n예약 요청 24시간 이후에는 10%의 수수료가 부과됩니다."
@@ -119,6 +134,7 @@ final class ReservationDetailVC: UIViewController {
         contentView.addSubview(sectionHeader)
         contentView.addSubview(cardView)
         view.addSubview(cancelButton)
+        view.addSubview(reviewButton)
         view.addSubview(guideLabel)
         
         scrollView.snp.makeConstraints {
@@ -170,12 +186,19 @@ final class ReservationDetailVC: UIViewController {
             $0.height.equalTo(54)
         }
         
+        reviewButton.snp.makeConstraints {
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(40)
+            $0.height.equalTo(54)
+        }
+        
         guideLabel.snp.makeConstraints {
             $0.top.equalTo(cancelButton.snp.bottom).offset(6)
             $0.centerX.equalToSuperview()
         }
         
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
+        reviewButton.addTarget(self, action: #selector(writeReviewTapped), for: .touchUpInside)
     }
     
     private func configureData() {
@@ -190,26 +213,26 @@ final class ReservationDetailVC: UIViewController {
         
         // 상태별 버튼 UI 조정
         switch r.status {
-        case "예약 중", "예약 요청":
-            cancelButton.isHidden = false
-            cancelButton.backgroundColor = .systemRed
-            cancelButton.setTitle("예약 취소하기", for: .normal)
-            guideLabel.isHidden = false
             
-        case "이용 완료":
+        case "예약 중", "예약 요청", "확정":
             cancelButton.isHidden = false
-            cancelButton.backgroundColor = .systemBlue
-            cancelButton.setTitle("리뷰 작성하기", for: .normal)
+            reviewButton.isHidden = true
+            guideLabel.isHidden = false
+            cancelButton.setTitle("예약 취소하기", for: .normal)
+            
+        case "이용 완료", "완료":
+            cancelButton.isHidden = true
+            reviewButton.isHidden = false
             guideLabel.isHidden = true
-            cancelButton.removeTarget(nil, action: nil, for: .allEvents)
-            cancelButton.addTarget(self, action: #selector(writeReviewTapped), for: .touchUpInside)
             
         case "취소":
             cancelButton.isHidden = true
+            reviewButton.isHidden = true
             guideLabel.isHidden = true
             
         default:
             cancelButton.isHidden = true
+            reviewButton.isHidden = true
             guideLabel.isHidden = true
         }
     }
@@ -319,9 +342,16 @@ final class ReservationDetailVC: UIViewController {
     
     // MARK: - 리뷰 작성
     @objc private func writeReviewTapped() {
-        let reviewVC = ReviewWriteVC()
-        reviewVC.reservation = reservation
-        navigationController?.pushViewController(reviewVC, animated: true)
+        let vc = ReviewWriteVC()
+        vc.reservation = reservation
+        vc.shopId = reservation?.shopId
+        
+        if let userId = Auth.auth().currentUser?.uid,
+           let id = reservation?.id {
+            vc.reservationPath = (userId: userId, reservationId: id)
+        }
+        
+        navigationController?.pushViewController(vc, animated: true)
     }
     
     private func cancelReservation(userId: String, reservation: Reservation) {

@@ -90,12 +90,20 @@ final class ReviewWriteVC: UIViewController {
             print("리뷰 작성 대상 샵:", r.shopName)
         }
         
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tapGesture.cancelsTouchesInView = false
+        view.addGestureRecognizer(tapGesture)
+        
         submitButton.addTarget(self, action: #selector(submitTapped), for: .touchUpInside)
     }
     
     // MARK: - Actions
     @objc private func starTapped(_ sender: UIButton) {
         selectedRating = sender.tag
+    }
+    
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
     }
     
     @objc private func submitTapped() {
@@ -136,9 +144,9 @@ final class ReviewWriteVC: UIViewController {
                         .collection("users").document(path.userId)
                         .collection("reservations").document(path.reservationId)
                     
-                    reservationRef.updateData([
+                    reservationRef.setData([
                         "reviewWritten": true
-                    ]) { err in
+                    ], merge: true) { err in
                         if let err = err {
                             print("⚠️ 예약 reviewWritten 업데이트 실패:", err.localizedDescription)
                         } else {

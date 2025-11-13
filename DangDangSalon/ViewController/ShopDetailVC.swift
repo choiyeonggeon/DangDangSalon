@@ -148,6 +148,7 @@ class ShopDetailVC: UIViewController {
         checkIfFavorite()
         fetchReviews()
         
+        observeShopRating() 
         updateReserveButtonState()
     }
     
@@ -486,6 +487,23 @@ class ShopDetailVC: UIViewController {
             self.favoriteButton.tintColor = color
             
         }
+    }
+    
+    private func observeShopRating() {
+        guard let shopId = shopId else { return }
+
+        db.collection("shops").document(shopId)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self,
+                      let data = snapshot?.data() else { return }
+
+                let newRating = data["rating"] as? Double ?? 0.0
+                let reviewCount = data["reviewCount"] as? Int ?? self.reviews.count
+
+                DispatchQueue.main.async {
+                    self.ratingLabel.text = "⭐️ \(String(format: "%.1f", newRating)) (\(reviewCount) 리뷰)"
+                }
+            }
     }
     
     // MARK: - 하트 애니메이션
