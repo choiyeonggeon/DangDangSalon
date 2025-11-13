@@ -182,7 +182,7 @@ extension MoreVC: UITableViewDelegate, UITableViewDataSource {
             navigationController?.pushViewController(vc, animated: true)
             
         case "앱 버전 정보":
-            if let version = Bundle.main.infoDictionary?["CFBundleShorVersionString"] as? String {
+            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
                 showAlert(title: "앱 버전", message: "현재 버전: \(version)")
             }
             

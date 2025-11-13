@@ -57,11 +57,13 @@ final class ReservationCell: UITableViewCell {
             $0.top.leading.equalToSuperview().inset(16)
             $0.trailing.lessThanOrEqualTo(reviewButton.snp.leading).offset(-8)
         }
+        
         statusLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(4)
             $0.leading.equalTo(titleLabel)
             $0.bottom.equalToSuperview().inset(16)
         }
+        
         reviewButton.snp.makeConstraints {
             $0.centerY.equalToSuperview()
             $0.trailing.equalToSuperview().inset(16)
