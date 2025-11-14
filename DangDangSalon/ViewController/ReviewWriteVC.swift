@@ -126,7 +126,6 @@ final class ReviewWriteVC: UIViewController {
             "timestamp": Timestamp(date: Date())
         ]
         
-        // 1) 리뷰 저장
         db.collection("shops").document(shopId)
             .collection("reviews")
             .addDocument(data: data) { error in
@@ -138,33 +137,49 @@ final class ReviewWriteVC: UIViewController {
                 
                 print("✅ 리뷰 등록 성공")
                 
-                // 2) 예약 문서에 reviewWritten = true 기록
-                if let path = self.reservationPath {
-                    let reservationRef = self.db
-                        .collection("users").document(path.userId)
-                        .collection("reservations").document(path.reservationId)
-                    
-                    reservationRef.setData([
-                        "reviewWritten": true
-                    ], merge: true) { err in
-                        if let err = err {
-                            print("⚠️ 예약 reviewWritten 업데이트 실패:", err.localizedDescription)
-                        } else {
-                            print("✅ 예약 reviewWritten = true 저장 완료")
-                        }
-                        
-                        // 3) 목록 갱신 신호 보내기
-                        NotificationCenter.default.post(name: .reviewWrittenForReservation, object: nil)
-                        NotificationCenter.default.post(name: .reviewAdded, object: nil)
-                        
-                        self.dismiss(animated: true)
-                    }
-                } else {
-                    // 예약 없이 그냥 리뷰만 쓰는 경우
-                    NotificationCenter.default.post(name: .reviewAdded, object: nil)
-                    self.dismiss(animated: true)
-                }
+                // 🔥 리뷰 완료 알림 후 종료
+                let successAlert = UIAlertController(
+                    title: "리뷰 등록 완료",
+                    message: "소중한 리뷰가 등록되었습니다!",
+                    preferredStyle: .alert
+                )
+                successAlert.addAction(UIAlertAction(title: "확인", style: .default) { _ in
+                    self.finishReviewWrite()
+                })
+                
+                self.present(successAlert, animated: true)
             }
+    }
+    
+    private func finishReviewWrite() {
+        // 예약 리뷰 상태 업데이트
+        if let path = self.reservationPath {
+            let reservationRef = self.db
+                .collection("users").document(path.userId)
+                .collection("reservations").document(path.reservationId)
+            
+            reservationRef.setData([
+                "reviewWritten": true
+            ], merge: true) { _ in
+                NotificationCenter.default.post(name: .reviewWrittenForReservation, object: nil)
+                NotificationCenter.default.post(name: .reviewAdded, object: nil)
+                
+                self.closeReviewScreen()
+            }
+        } else {
+            NotificationCenter.default.post(name: .reviewAdded, object: nil)
+            closeReviewScreen()
+        }
+    }
+    
+    private func closeReviewScreen() {
+        // ⭐️ navigationController 안에 있을 경우 → pop
+        if let nav = navigationController {
+            nav.popViewController(animated: true)
+        } else {
+            // ⭐️ modal로 띄웠을 경우 → dismiss
+            dismiss(animated: true)
+        }
     }
     
     // MARK: - Helpers

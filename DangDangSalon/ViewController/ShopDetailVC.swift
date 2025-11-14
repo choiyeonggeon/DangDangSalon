@@ -343,7 +343,7 @@ class ShopDetailVC: UIViewController {
     
     private func updateUI(with shop: Shop) {
         nameLabel.text = shop.name
-        ratingLabel.text = "⭐️ \(String(format: "%.1f", shop.rating)) (\(reviews.count) 리뷰)"
+        ratingLabel.text = "⭐️ \(String(format: "%.1f", shop.rating)) (\(shop.reviewCount) 리뷰)"
         locationLabel.text = shop.address ?? "주소 정보 없음"
         
         introLabel.text = shop.intro ?? "소개글이 없습니다."

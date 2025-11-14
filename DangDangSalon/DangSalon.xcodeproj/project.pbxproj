@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		42374A6D2EC614C400C1FE07 /* PaymentCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42374A6C2EC614C400C1FE07 /* PaymentCell.swift */; };
 		423B5B822EB8CA7D00EB5A47 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 423B5B812EB8CA7D00EB5A47 /* FirebaseMessaging */; };
 		423B5C5F2EB9FA8000EB5A47 /* KakaoSDKAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 423B5C5E2EB9FA8000EB5A47 /* KakaoSDKAuth */; };
 		4289BD4F2EA8DB6E00F02DDC /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 4289BD4E2EA8DB6E00F02DDC /* FirebaseAuth */; };
@@ -40,7 +39,6 @@
 		422273472E9FA7700009329B /* DangSalon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DangSalon.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4222735D2E9FA7720009329B /* DangSalonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DangSalonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		422273672E9FA7720009329B /* DangSalonUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DangSalonUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		42374A6C2EC614C400C1FE07 /* PaymentCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentCell.swift; sourceTree = "<group>"; };
 		42AB1E4F2EB1095800207828 /* Secret.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secret.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -131,7 +129,6 @@
 		4222733E2E9FA7700009329B = {
 			isa = PBXGroup;
 			children = (
-				42374A6C2EC614C400C1FE07 /* PaymentCell.swift */,
 				42AB1E4F2EB1095800207828 /* Secret.xcconfig */,
 				422274B42EA767C20009329B /* Cell */,
 				422274772EA0DB6D0009329B /* Font */,
@@ -317,7 +314,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				42374A6D2EC614C400C1FE07 /* PaymentCell.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

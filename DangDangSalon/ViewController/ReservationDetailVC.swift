@@ -22,6 +22,9 @@ final class ReservationDetailVC: UIViewController {
     
     private let db = Firestore.firestore()
     
+    // ✅ 로컬 플래그: 리뷰 작성 여부
+    private var isReviewWritten: Bool = false
+    
     // MARK: - UI
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -124,8 +127,29 @@ final class ReservationDetailVC: UIViewController {
         view.backgroundColor = UIColor.systemGroupedBackground
         title = "예약 상세"
         
+        // ✅ 최초 상태 동기화
+        isReviewWritten = reservation?.reviewWritten ?? false
+        
+        // ✅ 리뷰 작성 완료 시 알림 받기
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleReviewWritten),
+            name: .reviewWrittenForReservation,
+            object: nil
+        )
+        
         setupUI()
         configureData()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // ✅ 리뷰 작성 완료 알림 받았을 때
+    @objc private func handleReviewWritten(_ notification: Notification) {
+        isReviewWritten = true
+        configureData()   // UI 다시 세팅
     }
     
     private func setupUI() {
@@ -211,9 +235,18 @@ final class ReservationDetailVC: UIViewController {
         priceRow.valueLabel.text  = "\(r.priceString)"
         statusRow.valueLabel.text = statusText(for: r.status)
         
+        // ✅ 리뷰 작성 여부 체크 (Firestore 값 + 로컬 플래그 둘 다 반영)
+        let alreadyReviewed = isReviewWritten || r.reviewWritten
+        
+        if alreadyReviewed {
+            cancelButton.isHidden = true
+            reviewButton.isHidden = true
+            guideLabel.isHidden = true
+            return
+        }
+        
         // 상태별 버튼 UI 조정
         switch r.status {
-            
         case "예약 중", "예약 요청", "확정":
             cancelButton.isHidden = false
             reviewButton.isHidden = true
@@ -257,7 +290,6 @@ final class ReservationDetailVC: UIViewController {
         let alert = UIAlertController(title: "수수료 안내", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "돌아가기", style: .cancel))
         alert.addAction(UIAlertAction(title: "확인", style: .destructive) { _ in
-            // 🔹 Firestore에 취소 기록 업데이트
             let doc = self.db.collection("reservations").document(reservation.id)
             doc.updateData([
                 "status": "취소",
@@ -286,19 +318,16 @@ final class ReservationDetailVC: UIViewController {
               let reservation = reservation else { return }
         
         let now = Date()
-        let reservationDate = reservation.date           // 예약 일시 (Date)
-        let createdAt = reservation.createdAt            // 예약 생성 일시 (Date)
+        let reservationDate = reservation.date
+        let createdAt = reservation.createdAt
         
-        // 경과/잔여 시간 계산
         let hoursSinceCreation = now.timeIntervalSince(createdAt) / 3600.0
         let hoursUntilReservation = reservationDate.timeIntervalSince(now) / 3600.0
         
-        // 규칙
-        let isPast = reservationDate <= now                          // 이미 지난 예약
-        let withinTwoHours = hoursUntilReservation <= 2.0            // 예약 2시간 이내
-        let isFreeCancellation = hoursSinceCreation <= 24.0           // 요청 후 24시간 이내
+        let isPast = reservationDate <= now
+        let withinTwoHours = hoursUntilReservation <= 2.0
+        let isFreeCancellation = hoursSinceCreation <= 24.0
         
-        // 안내 문구
         var message: String
         var canCancel = true
         var willChargeFee = false
@@ -323,17 +352,18 @@ final class ReservationDetailVC: UIViewController {
         if canCancel {
             alert.addAction(UIAlertAction(title: "취소하기", style: .destructive) { _ in
                 if willChargeFee {
-                    self.chargeCancellationFee(userId: userId, reservation: reservation) // 10% 수수료 부과 경로
+                    self.chargeCancellationFee(userId: userId, reservation: reservation)
                 } else {
-                    self.cancelReservation(userId: userId, reservation: reservation)     // 무료 취소 경로
+                    self.cancelReservation(userId: userId, reservation: reservation)
                 }
             })
         }
         
-        // iPad 대응
         if let pop = alert.popoverPresentationController {
             pop.sourceView = self.view
-            pop.sourceRect = CGRect(x: self.view.bounds.midX, y: self.view.bounds.midY, width: 0, height: 0)
+            pop.sourceRect = CGRect(x: self.view.bounds.midX,
+                                    y: self.view.bounds.midY,
+                                    width: 0, height: 0)
             pop.permittedArrowDirections = []
         }
         
