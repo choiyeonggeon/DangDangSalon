@@ -11,6 +11,7 @@ import FirebaseFirestore
 struct Review {
     let id: String
     let nickname: String
+    let authorId: String
     let content: String
     let rating: Double
     let timestamp: Date?
@@ -25,6 +26,7 @@ struct Review {
         }
         self.id = document.documentID
         self.nickname = nickname
+        self.authorId = data["authorId"] as? String ?? ""   // ⭐ 추가!
         self.content = content
         self.rating = (data["rating"] as? Double) ?? 5.0
         self.timestamp = (data["timestamp"] as? Timestamp)?.dateValue()

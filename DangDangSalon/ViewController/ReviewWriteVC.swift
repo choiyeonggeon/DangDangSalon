@@ -15,6 +15,14 @@ import PhotosUI
 final class ReviewWriteVC: UIViewController {
     
     // MARK: - Properties
+    
+    // 리뷰 수정 모드일 때 전달됨
+    var isEditMode: Bool = false
+    var editReviewId: String?
+    var originalImages: [String] = []   // 기존 이미지 URL
+    var existingRating: Int = 0
+    var editOriginalContent: String = ""
+    
     var shopId: String?
     var reservation: Reservation?
     var reservationPath: (userId: String, reservationId: String)?
@@ -103,6 +111,19 @@ final class ReviewWriteVC: UIViewController {
         view.addGestureRecognizer(tapGesture)
         
         submitButton.addTarget(self, action: #selector(submitTapped), for: .touchUpInside)
+        
+        // ⭐⭐ 수정 모드일 때 UI 세팅 ⭐⭐
+        if isEditMode {
+            titleLabel.text = "리뷰 수정"
+            submitButton.setTitle("수정 완료", for: .normal)
+            
+            selectedRating = existingRating
+            
+            textView.text = editOriginalContent
+            textView.textColor = .label
+            
+            loadExistingImages()
+        }
     }
     
     // MARK: - Actions
@@ -132,17 +153,38 @@ final class ReviewWriteVC: UIViewController {
             return
         }
         
-        // ⭐ 1) 유저 닉네임 가져오기
+        // ⭐⭐⭐ 1) 수정 모드 처리 (reviewId 새로 생성 ❌) ⭐⭐⭐
+        if isEditMode, let reviewId = editReviewId {
+            let ref = db.collection("shops")
+                .document(shopId)
+                .collection("reviews")
+                .document(reviewId)
+            
+            ref.updateData([
+                "content": text,
+                "rating": Double(selectedRating),
+                "editedAt": Timestamp()
+            ]) { error in
+                if let error = error {
+                    self.showAlert(title: "수정 실패", message: error.localizedDescription)
+                    return
+                }
+                
+                NotificationCenter.default.post(name: .reviewAdded, object: nil)
+                self.closeReviewScreen()
+            }
+            return
+        }
+        
+        // ⭐⭐⭐ 2) 작성 모드 (새 reviewId 생성) ⭐⭐⭐
         db.collection("users").document(uid).getDocument { userSnap, error in
             let nickname = userSnap?.data()?["nickname"] as? String ?? "사용자"
             
-            // ⭐ 2) reviewId 먼저 생성
             let reviewRef = self.db.collection("shops").document(shopId)
                 .collection("reviews").document()
             
             let reviewId = reviewRef.documentID
             
-            // ⭐ 3) 이미지 업로드 후 저장
             self.uploadImages(shopId: shopId, reviewId: reviewId) { imageURLs in
                 
                 let data: [String: Any] = [
@@ -164,6 +206,36 @@ final class ReviewWriteVC: UIViewController {
                 }
             }
         }
+    }
+    
+    // MARK: - 기존 이미지 로딩
+    private func loadExistingImages() {
+        imagePreview.subviews.forEach { $0.removeFromSuperview() }
+        
+        var xOffset: CGFloat = 0
+        
+        for urlString in originalImages {
+            let iv = UIImageView()
+            iv.frame = CGRect(x: xOffset, y: 0, width: 80, height: 80)
+            iv.layer.cornerRadius = 8
+            iv.clipsToBounds = true
+            iv.contentMode = .scaleAspectFill
+            
+            if let url = URL(string: urlString) {
+                URLSession.shared.dataTask(with: url) { data, _, _ in
+                    if let data = data, let img = UIImage(data: data) {
+                        DispatchQueue.main.async {
+                            iv.image = img
+                        }
+                    }
+                }.resume()
+            }
+            
+            imagePreview.addSubview(iv)
+            xOffset += 90
+        }
+        
+        imagePreview.contentSize = CGSize(width: xOffset, height: 80)
     }
     
     private func finishReviewWrite() {

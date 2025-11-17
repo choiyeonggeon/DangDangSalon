@@ -8,9 +8,10 @@
 import UIKit
 import SnapKit
 
-// MARK: - 프로토콜은 클래스 밖에 있어야 함 ❗
+// MARK: - Delegate
 protocol ReviewCardCellDelegate: AnyObject {
     func didTapReviewImage(_ imageURLs: [String], selectedIndex: Int)
+    func didTapMoreButton(_ review: Review)     // ⭐ 리뷰 신고용
 }
 
 final class ReviewCardCell: UITableViewCell {
@@ -18,6 +19,7 @@ final class ReviewCardCell: UITableViewCell {
     // MARK: - Properties
     weak var delegate: ReviewCardCellDelegate?
     private var currentImageURLs: [String] = []
+    private var currentReview: Review?        // ⭐ 신고 시 전달용
     
     // MARK: - UI
     private let cardView: UIView = {
@@ -31,10 +33,18 @@ final class ReviewCardCell: UITableViewCell {
         return v
     }()
     
+    private let moreButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setImage(UIImage(systemName: "ellipsis"), for: .normal)
+        btn.tintColor = .secondaryLabel
+        return btn
+    }()
+    
     private let nicknameLabel = UILabel()
     private let ratingLabel = UILabel()
     private let contentLabel = UILabel()
     private let timestampLabel = UILabel()
+    
     private let replyTitleLabel = UILabel()
     private let replyContentLabel = UILabel()
     
@@ -52,6 +62,7 @@ final class ReviewCardCell: UITableViewCell {
     }
     required init?(coder: NSCoder) { fatalError() }
     
+    // MARK: - UI Setup
     private func setupUI() {
         backgroundColor = .clear
         selectionStyle = .none
@@ -83,6 +94,14 @@ final class ReviewCardCell: UITableViewCell {
             $0.leading.trailing.equalToSuperview().inset(20)
         }
         
+        cardView.addSubview(moreButton)
+        moreButton.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(12)
+            $0.trailing.equalToSuperview().inset(12)
+            $0.width.height.equalTo(24)
+        }
+        moreButton.addTarget(self, action: #selector(moreTapped), for: .touchUpInside)
+        
         let stack = UIStackView(arrangedSubviews: [
             nicknameLabel,
             ratingLabel,
@@ -103,14 +122,14 @@ final class ReviewCardCell: UITableViewCell {
     
     // MARK: - Configure
     func configure(with review: Review) {
+        currentReview = review
+        
         nicknameLabel.text = review.nickname
         ratingLabel.text = "⭐️ \(review.rating)"
         contentLabel.text = review.content
-        
         timestampLabel.text =
         review.timestamp != nil ? timeAgo(from: review.timestamp!) : ""
         
-        // 답글
         if let reply = review.reply, !reply.isEmpty {
             replyTitleLabel.isHidden = false
             replyContentLabel.isHidden = false
@@ -123,27 +142,25 @@ final class ReviewCardCell: UITableViewCell {
         updatePhotos(review.imageURLs)
     }
     
-    // MARK: - Load Photos
+    // MARK: - Photos
     private func updatePhotos(_ urls: [String]) {
         currentImageURLs = urls
-        
         photoScrollView.subviews.forEach { $0.removeFromSuperview() }
         
         guard urls.count > 0 else {
             photoScrollView.isHidden = true
             return
         }
-        
         photoScrollView.isHidden = false
         
         let size: CGFloat = 80
         var xOffset: CGFloat = 0
         
-        for (index, urlString) in urls.enumerated() {   // ✔ index 가져오기
+        for (index, urlString) in urls.enumerated() {
             guard let url = URL(string: urlString) else { continue }
             
             let iv = UIImageView()
-            iv.tag = index   // ✔ 클릭 시 index 전달
+            iv.tag = index
             iv.isUserInteractionEnabled = true
             iv.backgroundColor = .systemGray5
             iv.layer.cornerRadius = 8
@@ -158,8 +175,7 @@ final class ReviewCardCell: UITableViewCell {
             xOffset += size + 8
             
             URLSession.shared.dataTask(with: url) { data, _, _ in
-                if let data = data,
-                   let img = UIImage(data: data) {
+                if let data = data, let img = UIImage(data: data) {
                     DispatchQueue.main.async { iv.image = img }
                 }
             }.resume()
@@ -168,10 +184,16 @@ final class ReviewCardCell: UITableViewCell {
         photoScrollView.contentSize = CGSize(width: xOffset, height: size)
     }
     
-    // MARK: - Image Tap
+    // MARK: - Photo Tap
     @objc private func photoTapped(_ sender: UITapGestureRecognizer) {
         guard let view = sender.view else { return }
         delegate?.didTapReviewImage(currentImageURLs, selectedIndex: view.tag)
+    }
+    
+    // MARK: - More Button
+    @objc private func moreTapped() {
+        guard let review = currentReview else { return }
+        delegate?.didTapMoreButton(review)
     }
     
     // MARK: - Time Format
