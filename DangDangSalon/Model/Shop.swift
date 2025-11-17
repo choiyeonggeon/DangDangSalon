@@ -9,12 +9,15 @@ import Foundation
 import FirebaseFirestore
 
 struct Shop {
+    let isAds: Bool
+    var isNew: Bool
+    let isRecommended: Bool
+    
     let id: String
     let name: String
     let rating: Double     // ← avgRating을 담는 값
     let reviewCount: Int
     let imageURLs: [String]?
-    let isRecommended: Bool
     var distanceMeter: Int?
     let sizeType: String?
     let address: String?
@@ -23,6 +26,7 @@ struct Shop {
     let openTime: String?
     let closeTime: String?
     let category: String?
+    let createdAt: Date?
     
     let latitude: Double?
     let longitude: Double?
@@ -39,7 +43,6 @@ struct Shop {
         self.rating = data["avgRating"] as? Double ?? 0.0
         
         self.imageURLs = data["imageURLs"] as? [String]
-        self.isRecommended = data["isRecommended"] as? Bool ?? false
         self.distanceMeter = data["distanceMeter"] as? Int
         self.sizeType = data["sizeType"] as? String
         self.address = data["address"] as? String
@@ -49,9 +52,14 @@ struct Shop {
         self.closeTime = data["closeTime"] as? String
         self.category = data["category"] as? String
         self.reviewCount = data["reviewCount"] as? Int ?? 0
+        self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue()
         
         // 🔥 Firestore 좌표 필드 읽기
         self.latitude = data["latitude"] as? Double
         self.longitude = data["longitude"] as? Double
+        
+        self.isAds = data["isAds"] as? Bool ?? false
+        self.isNew = data["isNew"] as? Bool ?? false
+        self.isRecommended = data["isRecommended"] as? Bool ?? false
     }
 }

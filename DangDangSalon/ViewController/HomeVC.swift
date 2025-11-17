@@ -227,7 +227,7 @@ class HomeVC: UIViewController,
     private func fetchShops() {
         let db = Firestore.firestore()
         
-        db.collection("shops").getDocuments { snapshot, error in
+        db.collection("shops").getDocuments(completion: { snapshot, error in
             if let error = error {
                 print("Firestore 불러오기 실패:", error)
                 return
@@ -235,17 +235,30 @@ class HomeVC: UIViewController,
             
             guard let documents = snapshot?.documents else { return }
             
+            // Shop 변환
             self.allShops = documents.compactMap { Shop(document: $0) }
+
+            // NEW 계산
+            let now = Date()
+            let threshold = Calendar.current.date(byAdding: .day, value: -30, to: now)!
+
+            self.allShops = self.allShops.map { shop in
+                var s = shop
+                if let createdAt = shop.createdAt {
+                    s.isNew = createdAt >= threshold
+                }
+                return s
+            }
+            
             self.recommendedShops = self.allShops.filter { $0.isRecommended }
             self.nearbyShops = self.allShops
-            
+
             DispatchQueue.main.async {
-                // 위치가 있다면 거리 정렬 적용
                 self.sortShopsByDistanceIfPossible()
             }
-        }
+        })
     }
-    
+
     private func sortShopsByDistanceIfPossible() {
         guard let userLocation = userLocation else { return }
         
@@ -333,7 +346,7 @@ extension HomeVC: UITableViewDataSource, UITableViewDelegate {
             return UITableViewCell()
         }
         let shop = nearbyShops[indexPath.row]
-        cell.configure(with: shop.name)
+        cell.configure(with: shop)
         return cell
     }
     

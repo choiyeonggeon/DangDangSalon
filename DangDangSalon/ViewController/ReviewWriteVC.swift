@@ -7,6 +7,7 @@
 
 import UIKit
 import SnapKit
+import FirebaseAuth
 import FirebaseFirestore
 import FirebaseStorage
 import PhotosUI
@@ -126,29 +127,41 @@ final class ReviewWriteVC: UIViewController {
             return
         }
         
-        // 우선 문서부터 만들어 reviewId 확보
-        let reviewRef = db.collection("shops").document(shopId)
-            .collection("reviews").document()
+        guard let uid = Auth.auth().currentUser?.uid else {
+            showAlert(title: "오류", message: "로그인 정보가 없습니다.")
+            return
+        }
         
-        let reviewId = reviewRef.documentID
-        
-        uploadImages(shopId: shopId, reviewId: reviewId) { imageURLs in
+        // ⭐ 1) 유저 닉네임 가져오기
+        db.collection("users").document(uid).getDocument { userSnap, error in
+            let nickname = userSnap?.data()?["nickname"] as? String ?? "사용자"
             
-            let data: [String: Any] = [
-                "nickname": "익명",
-                "content": text,
-                "rating": Double(self.selectedRating),
-                "timestamp": Timestamp(date: Date()),
-                "imageURLs": imageURLs
-            ]
+            // ⭐ 2) reviewId 먼저 생성
+            let reviewRef = self.db.collection("shops").document(shopId)
+                .collection("reviews").document()
             
-            reviewRef.setData(data) { error in
-                if let error = error {
-                    self.showAlert(title: "오류", message: "리뷰 저장 실패: \(error.localizedDescription)")
-                    return
-                }
+            let reviewId = reviewRef.documentID
+            
+            // ⭐ 3) 이미지 업로드 후 저장
+            self.uploadImages(shopId: shopId, reviewId: reviewId) { imageURLs in
                 
-                self.finishReviewWrite()
+                let data: [String: Any] = [
+                    "nickname": nickname,
+                    "authorId": uid,
+                    "content": text,
+                    "rating": Double(self.selectedRating),
+                    "timestamp": Timestamp(date: Date()),
+                    "imageURLs": imageURLs
+                ]
+                
+                reviewRef.setData(data) { error in
+                    if let error = error {
+                        self.showAlert(title: "오류", message: "리뷰 저장 실패: \(error.localizedDescription)")
+                        return
+                    }
+                    
+                    self.finishReviewWrite()
+                }
             }
         }
     }

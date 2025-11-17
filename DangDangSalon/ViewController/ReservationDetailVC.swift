@@ -372,16 +372,40 @@ final class ReservationDetailVC: UIViewController {
     
     // MARK: - 리뷰 작성
     @objc private func writeReviewTapped() {
-        let vc = ReviewWriteVC()
-        vc.reservation = reservation
-        vc.shopId = reservation?.shopId
         
-        if let userId = Auth.auth().currentUser?.uid,
-           let id = reservation?.id {
-            vc.reservationPath = (userId: userId, reservationId: id)
+        guard let userId = Auth.auth().currentUser?.uid,
+              let reservation = reservation else { return }
+        
+        let reservationRef = db
+            .collection("users").document(userId)
+            .collection("reservations").document(reservation.id)
+        
+        // 🔥 Firestore에서 reviewWritten 확인
+        reservationRef.getDocument { snap, error in
+            if let error = error {
+                print("리뷰 상태 확인 실패:", error.localizedDescription)
+                return
+            }
+            
+            let already = snap?.data()?["reviewWritten"] as? Bool ?? false
+            
+            if already {
+                // 🔥 이미 작성한 경우 UI 차단
+                self.showAlert(
+                    title: "리뷰 작성 완료",
+                    message: "이미 이 예약에 대한 리뷰를 작성하셨습니다."
+                )
+                return
+            }
+            
+            // 🔥 리뷰 작성 가능 → 화면 이동
+            let vc = ReviewWriteVC()
+            vc.reservation = reservation
+            vc.shopId = reservation.shopId
+            vc.reservationPath = (userId: userId, reservationId: reservation.id)
+            
+            self.navigationController?.pushViewController(vc, animated: true)
         }
-        
-        navigationController?.pushViewController(vc, animated: true)
     }
     
     private func cancelReservation(userId: String, reservation: Reservation) {
