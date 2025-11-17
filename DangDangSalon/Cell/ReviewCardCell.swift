@@ -8,6 +8,20 @@
 import UIKit
 import SnapKit
 
+final class PaddingLabel: UILabel {
+    var inset = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
+
+    override func drawText(in rect: CGRect) {
+        super.drawText(in: rect.inset(by: inset))
+    }
+
+    override var intrinsicContentSize: CGSize {
+        let size = super.intrinsicContentSize
+        return CGSize(width: size.width + inset.left + inset.right,
+                      height: size.height + inset.top + inset.bottom)
+    }
+}
+
 // MARK: - Delegate
 protocol ReviewCardCellDelegate: AnyObject {
     func didTapReviewImage(_ imageURLs: [String], selectedIndex: Int)
@@ -46,8 +60,18 @@ final class ReviewCardCell: UITableViewCell {
     private let timestampLabel = UILabel()
     
     private let replyTitleLabel = UILabel()
-    private let replyContentLabel = UILabel()
     
+    private let replyContentLabel: PaddingLabel = {
+        let lbl = PaddingLabel()
+        lbl.font = .systemFont(ofSize: 14)
+        lbl.numberOfLines = 0
+        lbl.backgroundColor = .systemGray6
+        lbl.layer.cornerRadius = 10
+        lbl.clipsToBounds = true
+        lbl.isHidden = true
+        return lbl
+    }()
+
     private let photoScrollView: UIScrollView = {
         let sv = UIScrollView()
         sv.showsHorizontalScrollIndicator = false
@@ -112,12 +136,13 @@ final class ReviewCardCell: UITableViewCell {
             replyContentLabel
         ])
         stack.axis = .vertical
-        stack.spacing = 12
+        stack.spacing = 16
         
         cardView.addSubview(stack)
         stack.snp.makeConstraints { $0.edges.equalToSuperview().inset(16) }
         
         photoScrollView.snp.makeConstraints { $0.height.equalTo(90) }
+        
     }
     
     // MARK: - Configure
@@ -133,7 +158,7 @@ final class ReviewCardCell: UITableViewCell {
         if let reply = review.reply, !reply.isEmpty {
             replyTitleLabel.isHidden = false
             replyContentLabel.isHidden = false
-            replyContentLabel.text = "  \(reply)"
+            replyContentLabel.text = reply
         } else {
             replyTitleLabel.isHidden = true
             replyContentLabel.isHidden = true
