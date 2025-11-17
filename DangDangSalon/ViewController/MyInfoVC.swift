@@ -42,7 +42,7 @@ class MyInfoVC: UIViewController {
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
     private let actionButton = UIButton(type: .system)
     
-    private var menuItems: [String] = ["예약 내역", "즐겨찾기", "고객센터 문의"]
+    private var menuItems: [String] = ["예약 내역", "즐겨찾기", "고객센터", "닉네임 변경"]
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
@@ -133,6 +133,81 @@ class MyInfoVC: UIViewController {
         updateButtonState()
     }
     
+    private func changeNickname() {
+        let alert = UIAlertController(
+            title: "닉네임 변경",
+            message: "새로운 닉네임을 입력하세요.",
+            preferredStyle: .alert
+        )
+        
+        alert.addTextField { field in
+            field.placeholder = "새 닉네임"
+            field.autocapitalizationType = .none
+        }
+        
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        alert.addAction(UIAlertAction(title: "변경", style: .default, handler: { _ in
+            guard let newName = alert.textFields?.first?.text?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+                  !newName.isEmpty else { return }
+            
+            self.checkNicknameDuplicate(newName)
+        }))
+        
+        present(alert, animated: true)
+    }
+    
+    private func checkNicknameDuplicate(_ newName: String) {
+        let db = Firestore.firestore()
+        
+        // users 컬렉션에서 nickname이 동일한 문서가 있는지 검색
+        db.collection("users")
+            .whereField("nickname", isEqualTo: newName)
+            .getDocuments { snapshot, error in
+                
+                if let error = error {
+                    print("중복 검사 실패:", error.localizedDescription)
+                    self.showSimpleAlert("오류", "닉네임 중복 검사 중 오류가 발생했습니다.")
+                    return
+                }
+                
+                // 이미 같은 닉네임이 1개라도 존재하면 불가능
+                if let docs = snapshot?.documents, !docs.isEmpty {
+                    self.showSimpleAlert("중복된 닉네임", "이미 사용 중인 닉네임입니다.\n다른 닉네임을 선택해주세요.")
+                    return
+                }
+                
+                // 중복 아님 → Firestore 업데이트 진행
+                self.updateNicknameInFirestore(newName)
+            }
+    }
+    
+    private func updateNicknameInFirestore(_ newName: String) {
+        guard let user = Auth.auth().currentUser else { return }
+        
+        let db = Firestore.firestore()
+        db.collection("users").document(user.uid)
+            .updateData(["nickname": newName]) { error in
+                
+                if let error = error {
+                    print("닉네임 변경 실패:", error.localizedDescription)
+                    self.showSimpleAlert("오류", "닉네임 변경에 실패했습니다.")
+                    return
+                }
+                
+                DispatchQueue.main.async {
+                    self.nameLabel.text = newName
+                    self.showSimpleAlert("완료", "닉네임이 변경되었습니다.")
+                }
+            }
+    }
+    
+    private func showSimpleAlert(_ title: String, _ message: String) {
+        let ac = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        ac.addAction(UIAlertAction(title: "확인", style: .default))
+        present(ac, animated: true)
+    }
+    
     // MARK: - Button State
     private func updateButtonState() {
         actionButton.removeTarget(nil, action: nil, for: .allEvents)
@@ -196,6 +271,8 @@ extension MyInfoVC: UITableViewDataSource, UITableViewDelegate {
             navigationController?.pushViewController(FavoritesVC(), animated: true)
         case 2:
             navigationController?.pushViewController(CustomerServiceVC(), animated: true)
+        case 3:
+            changeNickname()
         default:
             break
         }

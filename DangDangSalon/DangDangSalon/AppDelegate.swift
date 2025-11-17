@@ -26,8 +26,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         
+        // Kakao
         KakaoSDK.initSDK(appKey: "${NATIVE_APP_KEY}")
+        
+        // Firebase
         FirebaseApp.configure()
+        
+        // 🔥 push delegate 등록
+        UNUserNotificationCenter.current().delegate = self
+        Messaging.messaging().delegate = self
+        
+        // 🔥 알림 권한 요청 (iOS 10+)
+        requestPushAuthorization(application)
         
         window = UIWindow(frame: UIScreen.main.bounds)
         let nav = UINavigationController(rootViewController: HomeVC())
@@ -37,30 +47,79 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         return true
     }
     
+    // MARK: - 알림 권한 요청 + APNs 등록
+    private func requestPushAuthorization(_ application: UIApplication) {
+        let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
+        
+        UNUserNotificationCenter.current().requestAuthorization(
+            options: authOptions
+        ) { granted, error in
+            if let error = error {
+                print("알림 권한 요청 실패: \(error.localizedDescription)")
+            }
+            print("알림 권한: \(granted)")
+        }
+        
+        // 🔥 APNs 등록
+        application.registerForRemoteNotifications()
+    }
+    
+    // MARK: - APNs 토큰 수신 (필수)
+    func application(_ application: UIApplication,
+                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        print("APNs token received")
+        Messaging.messaging().apnsToken = deviceToken
+    }
+    
+    // MARK: - Firebase -> FCM 토큰 수신
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        print("📱 FCM Token: \(fcmToken ?? "")")
+        
+        guard let fcmToken = fcmToken,
+              let user = Auth.auth().currentUser else { return }
+        
+        let db = Firestore.firestore()
+        let collection = user.email?.contains("owner") == true ? "owner" : "users"
+        
+        db.collection(collection)
+            .document(user.uid)
+            .setData(["fcmToken": fcmToken], merge: true)
+    }
+    
+    // MARK: - Foreground 알림 표시 방식
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound])
+    }
+    
+    // MARK: - Toss 결제 URL 처리
     func application(_ app: UIApplication,
                      open url: URL,
                      options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        
         let urlString = url.absoluteString
         
         if urlString.starts(with: "dangdangs://success") {
             handlePaymentSuccess(url: url)
+            return true
         } else if urlString.starts(with: "dangdangs://fail") {
-            print("결제 실패: \(urlString)")
+            print("결제 실패:", urlString)
+            return true
         }
-        return true
         
-//        if (AuthApi.isKakaoTalkLoginUrl(url)) {
-//            return AuthController.handleOpenUrl(url: url)
-//        }
-//        
-//        return false
+        // 카카오 로그인 URL 처리
+        if (AuthApi.isKakaoTalkLoginUrl(url)) {
+            return AuthController.handleOpenUrl(url: url)
+        }
+        
+        return false
     }
     
+    // MARK: - Toss 결제 Firestore 저장
     private func handlePaymentSuccess(url: URL) {
-        guard
-            let components = URLComponents(string: url.absoluteString),
-            let queryItems = components.queryItems
-        else { return }
+        guard let components = URLComponents(string: url.absoluteString),
+              let queryItems = components.queryItems else { return }
         
         let orderId = queryItems.first(where: { $0.name == "orderId" })?.value ?? ""
         let shopId = queryItems.first(where: { $0.name == "shopId" })?.value ?? ""
@@ -80,32 +139,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         }
     }
     
-    // MARK: UISceneSession Lifecycle
-    
-    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-        // Called when a new scene session is being created.
-        // Use this method to select a configuration to create the new scene with.
+    // Scene 생명주기 (필요 시)
+    func application(_ application: UIApplication,
+                     configurationForConnecting connectingSceneSession: UISceneSession,
+                     options: UIScene.ConnectionOptions) -> UISceneConfiguration {
         return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
     }
     
-    func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
-        // Called when the user discards a scene session.
-        // If any sessions were discarded while the application was not running, this will be called shortly after application:didFinishLaunchingWithOptions.
-        // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
-    }
-    // MARK: - Firebase Message
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                willPresent notification: UNNotification,
-                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([.banner, .sound])
-    }
-    
-    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        guard let fcmToken = fcmToken,
-        let user = Auth.auth().currentUser else { return }
-        
-        let db = Firestore.firestore()
-        let collection = user.email?.contains("owner") == true ? "owner" : "users"
-        db.collection(collection).document(user.uid).setData(["fcmToken": fcmToken], merge: true)
-    }
+    func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {}
 }

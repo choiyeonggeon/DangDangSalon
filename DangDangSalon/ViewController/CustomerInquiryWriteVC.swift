@@ -113,7 +113,7 @@ final class CustomerInquiryWriteVC: UIViewController {
         
         db.collection("users")
             .document(userId)
-            .collection("customerInquires")
+            .collection("customerInquiries")
             .addDocument(data: inquiryData) { [weak self] error in
                 if let error = error {
                     self?.showAlert(title: "오류", message: "문의 전송 실패: \(error.localizedDescription)")

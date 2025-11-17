@@ -15,7 +15,8 @@ final class AdminVC: UIViewController {
     private let menuItems = [
         "공지사항 작성",
         "리뷰 신고 관리 (추가 예졍)",
-        "예약 신고 관리 (추가 예정)"
+        "예약 신고 관리 (추가 예정)",
+        "고객센터(관리자용)"
     ]
     
     override func viewDidLoad() {
@@ -61,7 +62,7 @@ extension AdminVC: UITableViewDelegate, UITableViewDataSource {
             navigationController?.pushViewController(vc, animated: true)
             
         case "리뷰 신고 관리 (추가 예정)":
-            let alert = UIAlertController(title: "준비 중", message: "예약 신고 관리 기능은 곧 추가됩니다.", preferredStyle: .alert)
+            let alert = UIAlertController(title: "준비 중", message: "리뷰 신고 관리 기능은 곧 추가됩니다.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "확인", style: .default))
             present(alert, animated: true)
             
@@ -69,6 +70,10 @@ extension AdminVC: UITableViewDelegate, UITableViewDataSource {
                  let alert = UIAlertController(title: "준비 중", message: "예약 신고 관리 기능은 곧 추가됩니다!", preferredStyle: .alert)
                  alert.addAction(UIAlertAction(title: "확인", style: .default))
                  present(alert, animated: true)
+            
+        case "고객센터(관리자용)":
+            let vc = AdminCustomerServiceListVC()
+            navigationController?.pushViewController(vc, animated: true)
 
              default: break
         }
