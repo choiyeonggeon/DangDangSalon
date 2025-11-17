@@ -8,6 +8,8 @@
 import UIKit
 import SnapKit
 import FirebaseFirestore
+import FirebaseStorage
+import PhotosUI
 
 final class ReviewWriteVC: UIViewController {
     
@@ -17,6 +19,11 @@ final class ReviewWriteVC: UIViewController {
     var reservationPath: (userId: String, reservationId: String)?
     
     private let db = Firestore.firestore()
+    private let storage = Storage.storage()
+    
+    private let imagePickerButton = UIButton(type: .system)
+    private let imagePreview = UIScrollView()
+    private var selectedImages: [UIImage] = []
     
     // MARK: - UI
     private let titleLabel: UILabel = {
@@ -119,36 +126,31 @@ final class ReviewWriteVC: UIViewController {
             return
         }
         
-        let data: [String: Any] = [
-            "nickname": "익명",
-            "content": text,
-            "rating": Double(selectedRating),
-            "timestamp": Timestamp(date: Date())
-        ]
+        // 우선 문서부터 만들어 reviewId 확보
+        let reviewRef = db.collection("shops").document(shopId)
+            .collection("reviews").document()
         
-        db.collection("shops").document(shopId)
-            .collection("reviews")
-            .addDocument(data: data) { error in
+        let reviewId = reviewRef.documentID
+        
+        uploadImages(shopId: shopId, reviewId: reviewId) { imageURLs in
+            
+            let data: [String: Any] = [
+                "nickname": "익명",
+                "content": text,
+                "rating": Double(self.selectedRating),
+                "timestamp": Timestamp(date: Date()),
+                "imageURLs": imageURLs
+            ]
+            
+            reviewRef.setData(data) { error in
                 if let error = error {
-                    print("❌ 리뷰 저장 실패:", error.localizedDescription)
-                    self.showAlert(title: "오류", message: "리뷰 저장 중 문제가 발생했습니다.")
+                    self.showAlert(title: "오류", message: "리뷰 저장 실패: \(error.localizedDescription)")
                     return
                 }
                 
-                print("✅ 리뷰 등록 성공")
-                
-                // 🔥 리뷰 완료 알림 후 종료
-                let successAlert = UIAlertController(
-                    title: "리뷰 등록 완료",
-                    message: "소중한 리뷰가 등록되었습니다!",
-                    preferredStyle: .alert
-                )
-                successAlert.addAction(UIAlertAction(title: "확인", style: .default) { _ in
-                    self.finishReviewWrite()
-                })
-                
-                self.present(successAlert, animated: true)
+                self.finishReviewWrite()
             }
+        }
     }
     
     private func finishReviewWrite() {
@@ -185,11 +187,24 @@ final class ReviewWriteVC: UIViewController {
     // MARK: - Helpers
     private func setupLayout() {
         let stack = UIStackView(arrangedSubviews: [
-            titleLabel, ratingLabel, starStackView, textView, submitButton
+            titleLabel,
+            ratingLabel,
+            starStackView,
+            textView,
+            imagePickerButton,
+            imagePreview,
+            submitButton
         ])
         stack.axis = .vertical
         stack.spacing = 16
         stack.alignment = .fill
+        
+        imagePickerButton.setTitle("📷 사진 선택 (최대 5장)", for: .normal)
+        imagePickerButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        imagePickerButton.addTarget(self, action: #selector(selectImages), for: .touchUpInside)
+        
+        imagePreview.showsHorizontalScrollIndicator = false
+        imagePreview.snp.makeConstraints { $0.height.equalTo(90) }
         
         view.addSubview(stack)
         stack.snp.makeConstraints {
@@ -233,4 +248,118 @@ extension ReviewWriteVC: UITextViewDelegate {
 extension Notification.Name {
     static let reviewAdded = Notification.Name("reviewAdded")
     static let reviewWrittenForReservation = Notification.Name("reviewWrittenForReservation")
+}
+
+// MARK: - PHPicker
+extension ReviewWriteVC: PHPickerViewControllerDelegate {
+    
+    @objc private func selectImages() {
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        config.selectionLimit = 5
+        
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = self
+        present(picker, animated: true)
+    }
+    
+    func picker(_ picker:PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        dismiss(animated: true)
+        
+        selectedImages = []
+        let group = DispatchGroup()
+        
+        for item in results {
+            if item.itemProvider.canLoadObject(ofClass: UIImage.self) {
+                group.enter()
+                item.itemProvider.loadObject(ofClass: UIImage.self) { object, _ in
+                    if let img = object as? UIImage {
+                        self.selectedImages.append(img)
+                    }
+                    group.leave()
+                }
+            }
+        }
+        group.notify(queue: .main) {
+            self.updateImagePreview()
+        }
+    }
+    
+    private func updateImagePreview() {
+        imagePreview.subviews.forEach { $0.removeFromSuperview() }
+        
+        var xOffset: CGFloat = 0
+        for img in selectedImages {
+            let iv = UIImageView(image: img)
+            iv.contentMode = .scaleAspectFill
+            iv.clipsToBounds = true
+            iv.layer.cornerRadius = 8
+            iv.frame = CGRect(x: xOffset, y: 0, width: 80, height: 80)
+            
+            imagePreview.addSubview(iv)
+            xOffset += 90
+        }
+        imagePreview.contentSize = CGSize(width: xOffset, height: 80)
+    }
+    
+    private func uploadImages(shopId: String, reviewId: String,
+                              completion: @escaping ([String]) -> Void) {
+        
+        if selectedImages.isEmpty {
+            completion([])
+            return
+        }
+        
+        var urls: [String] = []
+        let group = DispatchGroup()
+        
+        for (index, img) in selectedImages.enumerated() {
+            group.enter()
+            
+            let resized = img.resize(toWidth: 800)
+            let path = "shops/\(shopId)/reviews/\(reviewId)/\(index).jpg"
+            let ref = storage.reference().child(path)
+            
+            guard let data = resized.jpegData(compressionQuality: 0.8) else {
+                group.leave()
+                continue
+            }
+            
+            ref.putData(data, metadata: nil) { _, error in
+                if let error = error {
+                    print("이미지 업로드 실패:", error.localizedDescription)
+                    group.leave()
+                    return
+                }
+                
+                ref.downloadURL { url, _ in
+                    if let urlStr = url?.absoluteString {
+                        urls.append(urlStr)
+                    }
+                    group.leave()
+                }
+            }
+        }
+        
+        group.notify(queue: .main) {
+            completion(urls)
+        }
+    }
+}
+
+// MARK: - UIImage Resize Helper
+extension UIImage {
+    func resize(toWidth width: CGFloat) -> UIImage {
+        let scale = width / self.size.width
+        let height = self.size.height * scale
+        
+        let newSize = CGSize(width: width, height: height)
+        
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 0)
+        self.draw(in: CGRect(origin: .zero, size: newSize))
+        let newImg = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return newImg ?? self
+    }
 }

@@ -8,11 +8,13 @@
 import UIKit
 import SnapKit
 import FirebaseFirestore
+import CoreLocation
 
 class HomeVC: UIViewController,
               UICollectionViewDataSource,
               UICollectionViewDelegate,
-              UISearchBarDelegate {
+              UISearchBarDelegate,
+              CLLocationManagerDelegate {
     
     // MARK: - UI
     private let appNameLabel: UILabel = {
@@ -84,6 +86,8 @@ class HomeVC: UIViewController,
     }()
     
     // MARK: - Data
+    private let locationManager = CLLocationManager()
+    private var userLocation: CLLocation?
     private var recommendedShops: [Shop] = []
     private var nearbyShops: [Shop] = []
     private var allShops: [Shop] = []
@@ -94,6 +98,12 @@ class HomeVC: UIViewController,
         super.viewDidLoad()
         setupUI()
         setupCategoryButtons()
+        
+        // 🔥 위치 권한 요청
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingLocation()
         
         recommendedCollectionView.dataSource = self
         recommendedCollectionView.delegate = self
@@ -223,21 +233,48 @@ class HomeVC: UIViewController,
                 return
             }
             
-            guard let documents = snapshot?.documents else {
-                print("Firestore snapshot이 비어있습니다.")
-                return
-            }
+            guard let documents = snapshot?.documents else { return }
             
-            let shops = documents.compactMap { Shop(document: $0) }
-            self.allShops = shops
-            self.recommendedShops = shops.filter { $0.isRecommended }
-            self.nearbyShops = shops
+            self.allShops = documents.compactMap { Shop(document: $0) }
+            self.recommendedShops = self.allShops.filter { $0.isRecommended }
+            self.nearbyShops = self.allShops
             
             DispatchQueue.main.async {
-                self.recommendedCollectionView.reloadData()
-                self.nearbyTableView.reloadData()
+                // 위치가 있다면 거리 정렬 적용
+                self.sortShopsByDistanceIfPossible()
             }
         }
+    }
+    
+    private func sortShopsByDistanceIfPossible() {
+        guard let userLocation = userLocation else { return }
+        
+        // 거리 계산
+        allShops = allShops.map { shop in
+            var s = shop
+            if let lat = shop.latitude, let lng = shop.longitude {
+                let shopLocation = CLLocation(latitude: lat, longitude: lng)
+                let distance = userLocation.distance(from: shopLocation) // meter
+                s.distanceMeter = Int(distance)
+            } else {
+                s.distanceMeter = Int.max  // 좌표 없는 샵 = 가장 뒤로
+            }
+            return s
+        }
+        
+        // 가까운 순 정렬 (오름차순)
+        allShops.sort {
+            ($0.distanceMeter ?? Int.max) < ($1.distanceMeter ?? Int.max)
+        }
+        
+        // 섹션별로 나누기
+        nearbyShops = allShops
+        
+        recommendedShops = allShops.filter { $0.isRecommended }
+        
+        // UI 갱신
+        nearbyTableView.reloadData()
+        recommendedCollectionView.reloadData()
     }
     
     // MARK: - 검색
@@ -307,3 +344,29 @@ extension HomeVC: UITableViewDataSource, UITableViewDelegate {
         navigationController?.pushViewController(vc, animated: true)
     }
 }
+
+extension HomeVC {
+    // 위치 권한 변경됐을 때
+    func locationManager(_ manager: CLLocationManager,
+                         didChangeAuthorization status: CLAuthorizationStatus) {
+        if status == .authorizedWhenInUse || status == .authorizedAlways {
+            locationManager.startUpdatingLocation()
+        }
+    }
+    
+    // 위치 업데이트 받을 때
+    func locationManager(_ manager: CLLocationManager,
+                         didUpdateLocations locations: [CLLocation]) {
+        guard let loc = locations.last else { return }
+        userLocation = loc
+        
+        // 이미 샵 목록이 있으면, 거리 기준으로 한 번 정렬해준다
+        sortShopsByDistanceIfPossible()
+    }
+    
+    func locationManager(_ manager: CLLocationManager,
+                         didFailWithError error: Error) {
+        print("위치 가져오기 실패:", error.localizedDescription)
+    }
+}
+

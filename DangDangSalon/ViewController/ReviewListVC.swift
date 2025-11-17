@@ -17,10 +17,12 @@ final class ReviewListVC: UIViewController {
     
     private let tableView: UITableView = {
         let tv = UITableView()
-        tv.register(ReviewCell.self, forCellReuseIdentifier: "ReviewCell")
+        tv.backgroundColor = .systemGroupedBackground
+        tv.register(ReviewCardCell.self, forCellReuseIdentifier: "ReviewCardCell")
         tv.separatorStyle = .none
         tv.rowHeight = UITableView.automaticDimension
-        tv.estimatedRowHeight = 60
+        tv.estimatedRowHeight = 100
+        tv.contentInset = UIEdgeInsets(top: 16, left: 0, bottom: 16, right: 0)
         return tv
     }()
     
@@ -30,8 +32,9 @@ final class ReviewListVC: UIViewController {
         title = "전체 리뷰"
         
         tableView.dataSource = self
-        
+        tableView.delegate = self
         view.addSubview(tableView)
+        
         tableView.snp.makeConstraints { $0.edges.equalToSuperview() }
         
         fetchAllReviews()
@@ -55,16 +58,29 @@ final class ReviewListVC: UIViewController {
     }
 }
 
-extension ReviewListVC: UITableViewDataSource {
+extension ReviewListVC: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         reviews.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ReviewCell", for: indexPath) as? ReviewCell else {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ReviewCardCell", for: indexPath) as? ReviewCardCell else {
             return UITableViewCell()
         }
+        cell.delegate = self   // ⭐️⭐️⭐️ 반드시 추가 ⭐️⭐️⭐️
         cell.configure(with: reviews[indexPath.row])
         return cell
+    }
+}
+
+// MARK: - ReviewCardCellDelegate
+extension ReviewListVC: ReviewCardCellDelegate {
+    
+    /// 사진 클릭 시 실행됨
+    func didTapReviewImage(_ imageURLs: [String], selectedIndex: Int) {
+        let viewerVC = FullImageViewerVC(imageURLs: imageURLs, startIndex: selectedIndex)
+        viewerVC.modalPresentationStyle = .fullScreen
+        
+        present(viewerVC, animated: true)
     }
 }

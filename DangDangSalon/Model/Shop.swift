@@ -24,6 +24,9 @@ struct Shop {
     let closeTime: String?
     let category: String?
     
+    let latitude: Double?
+    let longitude: Double?
+    
     init?(document: DocumentSnapshot) {
         let data = document.data() ?? [:]
         
@@ -46,5 +49,9 @@ struct Shop {
         self.closeTime = data["closeTime"] as? String
         self.category = data["category"] as? String
         self.reviewCount = data["reviewCount"] as? Int ?? 0
+        
+        // 🔥 Firestore 좌표 필드 읽기
+        self.latitude = data["latitude"] as? Double
+        self.longitude = data["longitude"] as? Double
     }
 }
