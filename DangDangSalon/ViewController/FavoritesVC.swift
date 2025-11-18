@@ -61,7 +61,9 @@ final class FavoritesVC: UIViewController {
         img.contentMode = .scaleAspectFit
         
         let label = UILabel()
-        label.text = "찜한 매장이 아직 없어요 💙"
+        label.text = "아직 찜한 매장이 없습니다.\n마음에 드는 미용샵을 찾아보세요 🐶"
+        label.numberOfLines = 0
+        label.textAlignment = .center
         label.textColor = .systemGray
         label.font = .systemFont(ofSize: 17)
         
@@ -117,7 +119,18 @@ final class FavoritesVC: UIViewController {
     
     // MARK: - Firestore
     private func fetchFavorites() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+        guard let userId = Auth.auth().currentUser?.uid else {
+            
+            DispatchQueue.main.async {
+                self.emptyView.isHidden = false
+                self.tableView.isHidden = true
+
+                if let label = self.emptyView.subviews.first?.subviews.last as? UILabel {
+                    label.text = "로그인 후 즐겨찾기를 확인할 수 있어요 💙"
+                }
+            }
+            return
+        }
         
         db.collection("users")
             .document(userId)

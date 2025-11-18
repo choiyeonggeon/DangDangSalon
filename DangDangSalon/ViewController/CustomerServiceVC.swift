@@ -86,7 +86,14 @@ final class CustomerServiceVC: UIViewController {
     
     // MARK: - Firestore
     @objc private func fetchInquiries() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let uid = Auth.auth().currentUser?.uid else {
+            DispatchQueue.main.async {
+                self.emptyLabel.text = "로그인 후 고객센터 문의를 이용할 수 있어요 💬"
+                self.emptyLabel.isHidden = false
+                self.tableView.isHidden = true
+            }
+            return
+        }
         
         activityIndicator.startAnimating()
         tableView.isUserInteractionEnabled = false
@@ -111,6 +118,24 @@ final class CustomerServiceVC: UIViewController {
     }
     
     @objc private func writeTapped() {
+        // 🔒 비로그인 상태 체크
+        guard Auth.auth().currentUser != nil else {
+            let alert = UIAlertController(
+                title: "로그인 필요",
+                message: "문의하기 기능은 로그인 후 이용할 수 있어요! 💬",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "로그인하기", style: .default, handler: { _ in
+                let loginVC = LoginVC()
+                loginVC.modalPresentationStyle = .fullScreen
+                self.present(loginVC, animated: true)
+            }))
+            alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+            present(alert, animated: true)
+            return
+        }
+        
+        // 🔓 로그인 상태 → 문의 작성 화면 이동
         let vc = CustomerInquiryWriteVC()
         navigationController?.pushViewController(vc, animated: true)
     }

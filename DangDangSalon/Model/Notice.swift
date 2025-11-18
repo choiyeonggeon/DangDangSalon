@@ -13,6 +13,7 @@ struct Notice {
     let title: String
     let content: String
     let createdAt: Date
+    let isPinned: Bool
     
     init(document: DocumentSnapshot) {
         self.id = document.documentID
@@ -20,5 +21,6 @@ struct Notice {
         self.title = data["title"] as? String ?? "제목 없음"
         self.content = data["content"] as? String ?? ""
         self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+        self.isPinned = data["isPinned"] as? Bool ?? false
     }
 }

@@ -13,6 +13,7 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
     // MARK: - UI
     private let scrollView = UIScrollView()
     private let containerView = UIView()
+    private let nameErrorLabel = UILabel.makeError()
     
     private let titleLabel: UILabel = {
         let lb = UILabel()
@@ -24,6 +25,7 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
     
     // 입력 필드
     private let nicknameTextField = UITextField.makeField(icon: "person.fill", placeholder: "닉네임")
+    private let fullNameTextField = UITextField.makeField(icon: "person.text.rectangle", placeholder: "이름 (실명)")
     private let emailTextField = UITextField.makeField(icon: "envelope.fill", placeholder: "이메일", keyboardType: .emailAddress)
     private let passwordTextField = UITextField.makeField(icon: "lock.fill", placeholder: "비밀번호 (8자 · 특수문자 포함)", isSecure: true)
     private let passwordConfirmTextField = UITextField.makeField(icon: "lock.rotation", placeholder: "비밀번호 확인", isSecure: true)
@@ -62,6 +64,32 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
     private let phoneErrorLabel = UILabel.makeError()
     private let verifyErrorLabel = UILabel.makeError()
     
+    private let termsCheckbox: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setImage(UIImage(systemName: "square"), for: .normal)
+        btn.tintColor = .systemGray
+        btn.contentHorizontalAlignment = .leading
+        return btn
+    }()
+    
+    private let termsLabel: UILabel = {
+        let lb = UILabel()
+        lb.text = "개인정보처리방침에 동의합니다."
+        lb.font = .systemFont(ofSize: 14)
+        lb.textColor = .label
+        return lb
+    }()
+    
+    private let openTermsButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitle("자세히 보기", for: .normal)
+        btn.titleLabel?.font = .systemFont(ofSize: 14)
+        btn.setTitleColor(.systemBlue, for: .normal)
+        return btn
+    }()
+    
+    private var isTermsAgreed = false
+    
     private let signupButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setTitle("회원가입 완료", for: .normal)
@@ -69,6 +97,8 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
         btn.backgroundColor = .systemBlue
         btn.tintColor = .white
         btn.layer.cornerRadius = 12
+        btn.isEnabled = false
+        btn.alpha = 0.5
         btn.heightAnchor.constraint(equalToConstant: 54).isActive = true
         return btn
     }()
@@ -92,6 +122,9 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
         
         nicknameTextField.delegate = self
         nicknameTextField.addTarget(self, action: #selector(nicknameEditingChanged(_:)), for: .editingChanged)
+        termsCheckbox.addTarget(self, action: #selector(toggleTerms), for: .touchUpInside)
+        openTermsButton.addTarget(self, action: #selector(openTerms), for: .touchUpInside)
+        
     }
     
     // MARK: - UI 구성
@@ -129,21 +162,28 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
         verifyCodeTextField.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview()
         }
+        
         timerLabel.snp.makeConstraints {
             $0.top.equalTo(verifyCodeTextField.snp.bottom).offset(4)
             $0.leading.equalToSuperview().offset(4)
             $0.bottom.equalToSuperview()
         }
         
+        let termsStack = UIStackView(arrangedSubviews: [termsCheckbox, termsLabel, openTermsButton])
+        termsStack.axis = .horizontal
+        termsStack.spacing = 8
+        termsStack.alignment = .center
+        
         // Stack
         let stack = UIStackView(arrangedSubviews: [
+            fullNameTextField, nameErrorLabel,
             nicknameTextField, nicknameErrorLabel,
             emailTextField, emailErrorLabel,
             passwordTextField, passwordErrorLabel,
             passwordConfirmTextField, confirmErrorLabel,
             phoneFieldContainer, phoneErrorLabel,
             verifyCodeContainer, verifyErrorLabel,
-            signupButton
+            termsStack, signupButton
         ])
         stack.axis = .vertical
         stack.spacing = 14
@@ -154,6 +194,7 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
             $0.top.equalToSuperview().offset(30)
             $0.leading.trailing.equalToSuperview().inset(20)
         }
+        
         stack.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(20)
             $0.leading.trailing.equalToSuperview().inset(20)
@@ -171,12 +212,15 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
         tap.cancelsTouchesInView = false
         view.addGestureRecognizer(tap)
     }
+    
     @objc private func closeKeyboard() { view.endEditing(true) }
     
     // MARK: - 닉네임 실시간 중복 체크
     @objc private func nicknameEditingChanged(_ tf: UITextField) {
-        guard let nickname = tf.text, !nickname.isEmpty else {
+        guard let nickname = tf.text, !nickname.isEmpty,
+        let fullName = fullNameTextField.text, !fullName.isEmpty else {
             nicknameErrorLabel.text = ""
+            nameErrorLabel.text = "이름을 입력해주세요."
             return
         }
         
@@ -221,11 +265,14 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
     
     // MARK: - 인증번호 전송
     @objc private func sendCode() {
-        guard let phone = phoneNumberTextField.text, !phone.isEmpty else {
+        guard let rawPhone = phoneNumberTextField.text, !rawPhone.isEmpty else {
             phoneErrorLabel.text = "전화번호를 입력해주세요."
             return
         }
-        
+
+        // 🔥 사용자가 010으로 입력해도 +82로 자동 변환
+        let phone = formatPhoneNumber(rawPhone)
+
         PhoneAuthProvider.provider().verifyPhoneNumber(phone, uiDelegate: nil) { id, error in
             if let error = error {
                 self.phoneErrorLabel.text = error.localizedDescription
@@ -235,10 +282,53 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
             self.verificationID = id
             self.verifyCodeTextField.isHidden = false
             self.verifyErrorLabel.text = "인증번호가 발송되었습니다."
-            
-            // 타이머 시작
             self.startTimer()
         }
+    }
+    
+    /// 한국 휴대폰 번호를 Firebase용 E.164 포맷으로 변환
+    private func formatPhoneNumber(_ raw: String) -> String {
+        var number = raw.replacingOccurrences(of: "-", with: "")
+        number = number.replacingOccurrences(of: " ", with: "")
+
+        // 이미 +82 로 시작하면 그대로 반환
+        if number.hasPrefix("+82") {
+            return number
+        }
+
+        // "01012345678" -> "+821012345678"
+        if number.hasPrefix("0") {
+            number.removeFirst()
+            return "+82" + number
+        }
+
+        // 예외처리: 그냥 숫자면 +82 붙여줌
+        return "+82" + number
+    }
+    
+    private func updateSignupButtonState() {
+        signupButton.isEnabled = isTermsAgreed
+        signupButton.alpha = isTermsAgreed ? 1.0 : 0.5
+    }
+    
+    @objc private func toggleTerms() {
+        isTermsAgreed.toggle()
+        
+        let imageName = isTermsAgreed ? "checkmark.square.fill" : "square"
+        termsCheckbox.setImage(UIImage(systemName: imageName), for: .normal)
+        termsCheckbox.tintColor = isTermsAgreed ? .systemBlue : .systemGray
+        
+        updateSignupButtonState()
+    }
+    
+    @objc private func openTerms() {
+        let vc = PDFViewrVC()
+        vc.modalPresentationStyle = .pageSheet
+        if let sheet = vc.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(vc, animated: true)
     }
     
     // MARK: - 비밀번호 정규식 검사
@@ -256,6 +346,22 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
         confirmErrorLabel.text = ""
         phoneErrorLabel.text = ""
         verifyErrorLabel.text = ""
+        
+        guard isTermsAgreed else {
+            let alert = UIAlertController(
+                title: "약관 동의 필요",
+                message: "회원가입을 위해 개인정보처리방침에 동의해주세요.",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "확인", style: .default))
+            present(alert, animated: true)
+            return
+        }
+        
+        guard let fullName = fullNameTextField.text, !fullName.isEmpty else {
+            nameErrorLabel.text = "이름을 입력해주세요."
+            return
+        }
         
         guard let nickname = nicknameTextField.text, !nickname.isEmpty else {
             nicknameErrorLabel.text = "닉네임을 입력해주세요."
@@ -298,12 +404,12 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
             }
             
             // 이메일 계정 생성
-            self.createAccount(email: email, pw: pw, nickname: nickname, phone: phone)
+            self.createAccount(email: email, pw: pw, fullName: fullName, nickname: nickname, phone: phone)
         }
     }
     
     // MARK: - Firestore 저장
-    private func createAccount(email: String, pw: String, nickname: String, phone: String) {
+    private func createAccount(email: String, pw: String, fullName: String, nickname: String, phone: String) {
         Auth.auth().createUser(withEmail: email, password: pw) { result, error in
             if let error = error {
                 self.emailErrorLabel.text = error.localizedDescription
@@ -313,6 +419,7 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
             guard let uid = result?.user.uid else { return }
             
             self.db.collection("users").document(uid).setData([
+                "name": fullName,
                 "nickname": nickname,
                 "email": email,
                 "phone": phone,
@@ -322,14 +429,14 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
             let alert = UIAlertController(title: "가입 완료",
                                           message: "회원가입이 완료되었습니다.",
                                           preferredStyle: .alert)
-
+            
             alert.addAction(UIAlertAction(title: "확인", style: .default, handler: { _ in
                 let tabBarVC = MainTabBarController()
                 tabBarVC.modalPresentationStyle = .fullScreen
                 self.present(tabBarVC, animated: true)
             }))
             self.present(alert, animated: true)
-
+            
         }
     }
 }
@@ -358,7 +465,7 @@ private extension UITextField {
         tf.leftViewMode = .always
         
         tf.heightAnchor.constraint(equalToConstant: 52).isActive = true
-
+        
         return tf
     }
 }

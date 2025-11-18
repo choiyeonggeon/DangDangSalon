@@ -62,7 +62,17 @@ final class PaymentHistoryVC: UIViewController {
     
     // MARK: - Firestore
     private func fetchPayments() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+        guard let userId = Auth.auth().currentUser?.uid else {
+            DispatchQueue.main.async {
+                self.emptyView.isHidden = false
+                self.tableView.isHidden = true
+                
+                if let label = self.emptyView.subviews.first?.subviews.last as? UILabel {
+                    label.text = "로그인 후 결제 내역을 확인할 수 있어요 💳"
+                }
+            }
+            return
+        }
         
         db.collection("users")
             .document(userId)

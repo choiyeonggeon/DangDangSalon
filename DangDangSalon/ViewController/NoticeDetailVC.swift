@@ -39,7 +39,7 @@ final class NoticeDetailVC: UIViewController {
         dateLabel.textColor = .systemGray
         
         let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        df.dateFormat = "yyyy-MM-dd"
         dateLabel.text = df.string(from: notice.createdAt)
         
         contentLabel.font = .systemFont(ofSize: 16)

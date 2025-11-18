@@ -91,6 +91,16 @@ class ShopDetailVC: UIViewController {
         return label
     }()
     
+    private let callButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitle("전화하기", for: .normal)
+        btn.titleLabel?.font = .boldSystemFont(ofSize: 18)
+        btn.backgroundColor = .systemGreen
+        btn.tintColor = .white
+        btn.layer.cornerRadius = 12
+        return btn
+    }()
+    
     private let reviewTitleLabel: UILabel = {
         let label = UILabel()
         label.text = "리뷰"
@@ -194,6 +204,7 @@ class ShopDetailVC: UIViewController {
     private func setupLayout() {
         view.addSubview(scrollerView)
         view.addSubview(reserveButton)
+        view.addSubview(callButton)
         scrollerView.addSubview(contentView)
         
         // 스크롤뷰는 버튼 위까지
@@ -292,10 +303,18 @@ class ShopDetailVC: UIViewController {
             $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(16)
             $0.height.equalTo(56)
         }
+        
+        callButton.snp.makeConstraints {
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalTo(reserveButton.snp.top).offset(-8)
+            $0.height.equalTo(52)
+        }
+        
         favoriteButton.isUserInteractionEnabled = true
         scrollerView.isUserInteractionEnabled = true
         contentView.isUserInteractionEnabled = true
         contentView.bringSubviewToFront(favoriteButton)
+        callButton.addTarget(self, action: #selector(callShopOwner), for: .touchUpInside)
     }
     
     // MARK: - Firestore
@@ -424,6 +443,35 @@ class ShopDetailVC: UIViewController {
                     self.updateFavoriteButton()
                 }
             }
+    }
+    
+    @objc private func callShopOwner() {
+        guard let phone = shop?.phone,
+              !phone.isEmpty else {
+            let alert = UIAlertController(
+                title: "전화 불가",
+                message: "등록된 전화번호가 없습니다.",
+                preferredStyle: .alert)
+            
+            alert.addAction(UIAlertAction(title: "확인", style: .default))
+            present(alert, animated: true)
+            return
+        }
+        
+        let cleaned = phone
+            .replacingOccurrences(of: "-", with: "")
+            .replacingOccurrences(of: " ", with: "")
+        
+        if let url = URL(string: "tel://\(cleaned)"),
+           UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        } else {
+            let alert = UIAlertController(title: "호출 실패",
+                                          message: "전화 앱을 열 수 없습니다.",
+                                          preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "확인", style: .default))
+            present(alert, animated: true)
+        }
     }
     
     @objc private func toggleFavorite() {

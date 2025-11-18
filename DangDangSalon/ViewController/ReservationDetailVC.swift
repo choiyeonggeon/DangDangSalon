@@ -279,38 +279,38 @@ final class ReservationDetailVC: UIViewController {
         }
     }
     
-    // MARK: - 수수료 부과 취소
-    private func chargeCancellationFee(userId: String, reservation: Reservation) {
-        let feeRate = 0.1 // 예: 10% 수수료
-        let totalPrice = reservation.totalPrice
-        let feeAmount = Int(Double(totalPrice) * feeRate)
-        
-        let message = "예약을 취소하면 \(feeAmount)원이 수수료로 부과됩니다.\n계속 진행하시겠어요?"
-        
-        let alert = UIAlertController(title: "수수료 안내", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "돌아가기", style: .cancel))
-        alert.addAction(UIAlertAction(title: "확인", style: .destructive) { _ in
-            let doc = self.db.collection("reservations").document(reservation.id)
-            doc.updateData([
-                "status": "취소",
-                "cancellationFee": feeAmount,
-                "cancelledAt": Timestamp()
-            ]) { [weak self] err in
-                guard let self = self else { return }
-                if let err = err {
-                    print("예약 취소 실패:", err.localizedDescription)
-                    self.showAlert(title: "오류", message: "예약 취소에 실패했습니다.")
-                    return
-                }
-                
-                self.showAlert(title: "취소 완료", message: "수수료 \(feeAmount)원이 부과되었습니다.") {
-                    NotificationCenter.default.post(name: .reservationCancelled, object: nil)
-                    self.navigationController?.popViewController(animated: true)
-                }
-            }
-        })
-        present(alert, animated: true)
-    }
+    //    // MARK: - 수수료 부과 취소
+    //    private func chargeCancellationFee(userId: String, reservation: Reservation) {
+    //        let feeRate = 0.1 // 예: 10% 수수료
+    //        let totalPrice = reservation.totalPrice
+    //        let feeAmount = Int(Double(totalPrice) * feeRate)
+    //
+    //        let message = "예약을 취소하면 \(feeAmount)원이 수수료로 부과됩니다.\n계속 진행하시겠어요?"
+    //
+    //        let alert = UIAlertController(title: "수수료 안내", message: message, preferredStyle: .alert)
+    //        alert.addAction(UIAlertAction(title: "돌아가기", style: .cancel))
+    //        alert.addAction(UIAlertAction(title: "확인", style: .destructive) { _ in
+    //            let doc = self.db.collection("reservations").document(reservation.id)
+    //            doc.updateData([
+    //                "status": "취소",
+    //                "cancellationFee": feeAmount,
+    //                "cancelledAt": Timestamp()
+    //            ]) { [weak self] err in
+    //                guard let self = self else { return }
+    //                if let err = err {
+    //                    print("예약 취소 실패:", err.localizedDescription)
+    //                    self.showAlert(title: "오류", message: "예약 취소에 실패했습니다.")
+    //                    return
+    //                }
+    //
+    //                self.showAlert(title: "취소 완료", message: "수수료 \(feeAmount)원이 부과되었습니다.") {
+    //                    NotificationCenter.default.post(name: .reservationCancelled, object: nil)
+    //                    self.navigationController?.popViewController(animated: true)
+    //                }
+    //            }
+    //        })
+    //        present(alert, animated: true)
+    //    }
     
     // MARK: - 예약 취소
     @objc private func cancelTapped() {
@@ -319,18 +319,13 @@ final class ReservationDetailVC: UIViewController {
         
         let now = Date()
         let reservationDate = reservation.date
-        let createdAt = reservation.createdAt
-        
-        let hoursSinceCreation = now.timeIntervalSince(createdAt) / 3600.0
-        let hoursUntilReservation = reservationDate.timeIntervalSince(now) / 3600.0
         
         let isPast = reservationDate <= now
+        let hoursUntilReservation = reservationDate.timeIntervalSince(now) / 3600.0
         let withinTwoHours = hoursUntilReservation <= 2.0
-        let isFreeCancellation = hoursSinceCreation <= 24.0
         
         var message: String
         var canCancel = true
-        var willChargeFee = false
         
         if isPast {
             message = "이미 지난 예약은 취소할 수 없습니다."
@@ -338,24 +333,20 @@ final class ReservationDetailVC: UIViewController {
         } else if withinTwoHours {
             message = "예약 2시간 전 이후에는 앱에서 취소할 수 없습니다.\n매장에 직접 문의해 주세요."
             canCancel = false
-        } else if isFreeCancellation {
-            message = "예약 요청 후 24시간 이내이므로 수수료 없이 취소할 수 있습니다.\n정말 취소하시겠어요?"
-            willChargeFee = false
         } else {
-            message = "예약 요청 후 24시간이 경과하여 취소 수수료 10%가 부과됩니다.\n그래도 취소하시겠어요?"
-            willChargeFee = true
+            message = "정말 예약을 취소하시겠어요?"
+            canCancel = true
         }
         
-        let alert = UIAlertController(title: "예약 취소", message: message, preferredStyle: .actionSheet)
+        let alert = UIAlertController(title: "예약 취소",
+                                      message: message,
+                                      preferredStyle: .actionSheet)
+        
         alert.addAction(UIAlertAction(title: "닫기", style: .cancel))
         
         if canCancel {
             alert.addAction(UIAlertAction(title: "취소하기", style: .destructive) { _ in
-                if willChargeFee {
-                    self.chargeCancellationFee(userId: userId, reservation: reservation)
-                } else {
-                    self.cancelReservation(userId: userId, reservation: reservation)
-                }
+                self.showCancelReasonAlert(userId: userId, reservation: reservation)
             })
         }
         
@@ -408,10 +399,14 @@ final class ReservationDetailVC: UIViewController {
         }
     }
     
-    private func cancelReservation(userId: String, reservation: Reservation) {
+    private func cancelReservation(userId: String, reservation: Reservation, reason: String) {
         let doc = db.collection("reservations").document(reservation.id)
         
-        doc.updateData(["status": "취소"]) { [weak self] err in
+        doc.updateData([
+            "status": "취소",
+            "cancelReason": reason,
+            "cancelledAt": Timestamp()
+        ]) { [weak self] err in
             guard let self = self else { return }
             if let err = err {
                 print("예약 취소 실패:", err.localizedDescription)
@@ -424,6 +419,26 @@ final class ReservationDetailVC: UIViewController {
                 self.navigationController?.popViewController(animated: true)
             }
         }
+    }
+    
+    private func showCancelReasonAlert(userId: String, reservation: Reservation) {
+        let alert = UIAlertController(
+            title: "취소 사유",
+            message: "취소하시는 이유를 입력해주세요.",
+            preferredStyle: .alert
+        )
+        
+        alert.addTextField { tf in
+            tf.placeholder = "예: 갑작스런 일정 변경 등"
+        }
+        
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        alert.addAction(UIAlertAction(title: "확인", style: .destructive, handler: { _ in
+            let reason = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            self.cancelReservation(userId: userId, reservation: reservation, reason: reason)
+        }))
+        
+        present(alert, animated: true)
     }
     
     private func showAlert(title: String, message: String, completion: (() -> Void)? = nil) {

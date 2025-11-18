@@ -264,15 +264,43 @@ extension MyInfoVC: UITableViewDataSource, UITableViewDelegate {
                    didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
+        // 🔒 공통 로그인 체크
+        func requireLogin(_ action: @escaping () -> Void) {
+            if Auth.auth().currentUser == nil {
+                let alert = UIAlertController(
+                    title: "로그인 필요",
+                    message: "이 기능은 로그인 후 이용할 수 있어요 🙂",
+                    preferredStyle: .alert
+                )
+                alert.addAction(UIAlertAction(title: "로그인하기", style: .default, handler: { _ in
+                    let vc = LoginVC()
+                    vc.modalPresentationStyle = .formSheet
+                    self.present(vc, animated: true)
+                }))
+                alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+                present(alert, animated: true)
+            } else {
+                action()
+            }
+        }
+        
         switch indexPath.row {
         case 0:
-            navigationController?.pushViewController(MyReservationVC(), animated: true)
+            requireLogin {
+                self.navigationController?.pushViewController(MyReservationVC(), animated: true)
+            }
         case 1:
-            navigationController?.pushViewController(FavoritesVC(), animated: true)
+            requireLogin {
+                self.navigationController?.pushViewController(FavoritesVC(), animated: true)
+            }
         case 2:
-            navigationController?.pushViewController(CustomerServiceVC(), animated: true)
+            requireLogin {
+                self.navigationController?.pushViewController(CustomerServiceVC(), animated: true)
+            }
         case 3:
-            changeNickname()
+            requireLogin {
+                self.changeNickname()
+            }
         default:
             break
         }

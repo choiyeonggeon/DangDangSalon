@@ -59,7 +59,8 @@ final class MyReservationVC: UIViewController {
         let img = UIImageView(image: UIImage(systemName: "pawprint.circle.fill"))
         img.tintColor = .systemGray4
         let label = UILabel()
-        label.text = "아직 예약이 없어요 🐶"
+        label.text = "아직 예약 내역이 없습니다.\n예약을 진행하면 이곳에서 확인할 수 있어요 🐾"
+        label.numberOfLines = 0
         label.textColor = .systemGray
         label.font = .systemFont(ofSize: 17)
         label.textAlignment = .center
@@ -94,7 +95,19 @@ final class MyReservationVC: UIViewController {
     
     // MARK: - Firestore: 실시간 예약 리스트 감시
     @objc private func fetchReservations() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+        guard let userId = Auth.auth().currentUser?.uid else {
+            
+            DispatchQueue.main.async {
+                self.emptyView.isHidden = false
+                self.tableView.isHidden = true
+                
+                // emptyView 안의 UILabel 텍스트 교체
+                if let label = self.emptyView.subviews.first?.subviews.last as? UILabel {
+                    label.text = "로그인 후 예약 내역을 확인할 수 있어요 🐾"
+                }
+            }
+            return
+        }
         
         db.collection("reservations")
             .whereField("userId", isEqualTo: userId)

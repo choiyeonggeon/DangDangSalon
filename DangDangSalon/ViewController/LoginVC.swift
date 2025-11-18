@@ -109,7 +109,7 @@ class LoginVC: UIViewController {
             emailField,
             passwordField,
             loginButton,
-            kakaoButton,
+//            kakaoButton,
             appleButton,
             signupButton
         ])

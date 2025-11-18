@@ -58,6 +58,16 @@ class HomeVC: UIViewController,
         return label
     }()
     
+    private let emptyRecommendedLabel: UILabel = {
+        let lb = UILabel()
+        lb.text = "아직 등록된 추천 미용실이 없어요."
+        lb.font = .systemFont(ofSize: 14)
+        lb.textAlignment = .center
+        lb.textColor = .secondaryLabel
+        lb.isHidden = true
+        return lb
+    }()
+    
     private let recommendedCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
@@ -75,6 +85,17 @@ class HomeVC: UIViewController,
         label.text = "가까운 미용샵"
         label.font = .boldSystemFont(ofSize: 18)
         return label
+    }()
+    
+    private let emptyNearbyLabel: UILabel = {
+        let lb = UILabel()
+        lb.text = "주변에 미용샵이 없습니다.\n입점 미용샵을 빠르게 늘리고 있어요!"
+        lb.numberOfLines = 0
+        lb.textAlignment = .center
+        lb.font = .systemFont(ofSize: 14)
+        lb.textColor = .secondaryLabel
+        lb.isHidden = true
+        return lb
     }()
     
     private let nearbyTableView: UITableView = {
@@ -126,7 +147,7 @@ class HomeVC: UIViewController,
         view.backgroundColor = .systemBackground
         
         [appNameLabel, titleLabel, searchBar, categoryStack, recommendedLabel,
-         recommendedCollectionView, nearbyLabel, nearbyTableView].forEach {
+         recommendedCollectionView, emptyRecommendedLabel, nearbyLabel, emptyNearbyLabel, nearbyTableView].forEach {
             view.addSubview($0)
         }
         
@@ -156,6 +177,11 @@ class HomeVC: UIViewController,
             $0.leading.equalToSuperview().offset(20)
         }
         
+        emptyRecommendedLabel.snp.makeConstraints {
+            $0.top.equalTo(recommendedLabel.snp.bottom).offset(20)
+            $0.leading.trailing.equalToSuperview().inset(20)
+        }
+        
         recommendedCollectionView.snp.makeConstraints {
             $0.top.equalTo(recommendedLabel.snp.bottom).offset(20)
             $0.leading.equalToSuperview().offset(20)
@@ -167,6 +193,12 @@ class HomeVC: UIViewController,
             $0.top.equalTo(recommendedCollectionView.snp.bottom).offset(20)
             $0.leading.equalToSuperview().offset(20)
             $0.trailing.equalToSuperview().inset(20)
+        }
+        
+        emptyNearbyLabel.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.top.equalTo(nearbyLabel.snp.bottom).offset(40)
+            $0.leading.trailing.equalToSuperview().inset(20)
         }
         
         nearbyTableView.snp.makeConstraints {
@@ -255,6 +287,7 @@ class HomeVC: UIViewController,
 
             DispatchQueue.main.async {
                 self.sortShopsByDistanceIfPossible()
+                self.updateEmptyStates()
             }
         })
     }
@@ -288,6 +321,14 @@ class HomeVC: UIViewController,
         // UI 갱신
         nearbyTableView.reloadData()
         recommendedCollectionView.reloadData()
+    }
+    
+    private func updateEmptyStates() {
+        emptyRecommendedLabel.isHidden = !recommendedShops.isEmpty
+        recommendedCollectionView.isHidden = recommendedShops.isEmpty
+        
+        emptyNearbyLabel.isHidden = !nearbyShops.isEmpty
+        nearbyTableView.isHidden = nearbyShops.isEmpty
     }
     
     // MARK: - 검색

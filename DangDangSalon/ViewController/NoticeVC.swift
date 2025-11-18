@@ -25,7 +25,7 @@ final class NoticeVC: UIViewController {
     
     private let emptyLabel: UILabel = {
         let lb = UILabel()
-        lb.text = "등록된 공지사항이 없습니다 🐶"
+        lb.text = "등록된 공지사항이 없습니다. 🐶"
         lb.textColor = .systemGray
         lb.textAlignment = .center
         lb.font = .systemFont(ofSize: 16)
@@ -69,7 +69,20 @@ final class NoticeVC: UIViewController {
                     return
                 }
                 guard let docs = snapshot?.documents else { return }
-                self.notices = docs.compactMap { Notice(document: $0) }
+                
+                var list = docs.compactMap { Notice(document: $0) }
+                
+                list.sort {
+                    if $0.isPinned != $1.isPinned {
+                        return $0.isPinned && !$1.isPinned
+                    }
+                    
+                    let date0 = $0.createdAt ?? .distantPast
+                    let date1 = $1.createdAt ?? .distantPast
+                    return date0 > date1
+                }
+                
+                self.notices = list
                 
                 DispatchQueue.main.async {
                     self.emptyLabel.isHidden = !self.notices.isEmpty

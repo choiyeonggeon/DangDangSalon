@@ -56,9 +56,16 @@ final class NoticeCell: UITableViewCell {
     }
     
     func configure(with notice: Notice) {
-        titleLabel.text = notice.title
+        let fullTitle = "[공지] \(notice.title)"
+        let attributed = NSMutableAttributedString(string: fullTitle)
+                
+        attributed.addAttribute(.foregroundColor,
+                                   value: UIColor.systemBlue,
+                                   range: NSRange(location: 0, length: 4))
+        titleLabel.attributedText = attributed
+        
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.dateFormat = "yyyy-MM-dd"
         dateLabel.text = formatter.string(from: notice.createdAt)
         
     }
