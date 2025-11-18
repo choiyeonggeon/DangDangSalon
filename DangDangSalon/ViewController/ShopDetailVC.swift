@@ -91,13 +91,34 @@ class ShopDetailVC: UIViewController {
         return label
     }()
     
-    private let callButton: UIButton = {
+    private let openStatusBadge: UILabel = {
+        let lb = UILabel()
+        lb.text = "영업 중"
+        lb.textColor = .white
+        lb.backgroundColor = .systemGreen
+        lb.font = .systemFont(ofSize: 13, weight: .bold)
+        lb.textAlignment = .center
+        lb.layer.cornerRadius = 8
+        lb.clipsToBounds = true
+        lb.isHidden = true
+        return lb
+    }()
+    
+    private let callIconButton: UIButton = {
         let btn = UIButton(type: .system)
-        btn.setTitle("전화하기", for: .normal)
-        btn.titleLabel?.font = .boldSystemFont(ofSize: 18)
-        btn.backgroundColor = .systemGreen
-        btn.tintColor = .white
-        btn.layer.cornerRadius = 12
+        btn.setImage(UIImage(systemName: "phone.fill"), for: .normal)
+        btn.tintColor = .systemGreen
+        btn.contentHorizontalAlignment = .fill
+        btn.contentVerticalAlignment = .fill
+        return btn
+    }()
+
+    private let mapIconButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setImage(UIImage(systemName: "map.fill"), for: .normal)
+        btn.tintColor = .systemBlue
+        btn.contentHorizontalAlignment = .fill
+        btn.contentVerticalAlignment = .fill
         return btn
     }()
     
@@ -204,8 +225,11 @@ class ShopDetailVC: UIViewController {
     private func setupLayout() {
         view.addSubview(scrollerView)
         view.addSubview(reserveButton)
-        view.addSubview(callButton)
+
         scrollerView.addSubview(contentView)
+        contentView.addSubview(openStatusBadge)
+        contentView.addSubview(callIconButton)
+        contentView.addSubview(mapIconButton)
         
         // 스크롤뷰는 버튼 위까지
         scrollerView.snp.makeConstraints {
@@ -250,10 +274,29 @@ class ShopDetailVC: UIViewController {
             $0.trailing.equalToSuperview().inset(20)
             $0.width.height.equalTo(28)
         }
+
+        callIconButton.snp.makeConstraints {
+            $0.centerY.equalTo(nameLabel)
+            $0.trailing.equalTo(favoriteButton.snp.leading).offset(-12)
+            $0.width.height.equalTo(24)
+        }
+
+        mapIconButton.snp.makeConstraints {
+            $0.centerY.equalTo(nameLabel)
+            $0.trailing.equalTo(callIconButton.snp.leading).offset(-12)
+            $0.width.height.equalTo(24)
+        }
         
         ratingLabel.snp.makeConstraints {
             $0.top.equalTo(nameLabel.snp.bottom).offset(4)
             $0.leading.equalToSuperview().offset(20)
+        }
+        
+        openStatusBadge.snp.makeConstraints {
+            $0.leading.equalTo(ratingLabel.snp.trailing).offset(8)
+            $0.centerY.equalTo(ratingLabel)
+            $0.height.equalTo(20)
+            $0.width.greaterThanOrEqualTo(50)
         }
         
         locationLabel.snp.makeConstraints {
@@ -304,17 +347,12 @@ class ShopDetailVC: UIViewController {
             $0.height.equalTo(56)
         }
         
-        callButton.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview().inset(20)
-            $0.bottom.equalTo(reserveButton.snp.top).offset(-8)
-            $0.height.equalTo(52)
-        }
-        
         favoriteButton.isUserInteractionEnabled = true
         scrollerView.isUserInteractionEnabled = true
         contentView.isUserInteractionEnabled = true
         contentView.bringSubviewToFront(favoriteButton)
-        callButton.addTarget(self, action: #selector(callShopOwner), for: .touchUpInside)
+        callIconButton.addTarget(self, action: #selector(callShopOwner), for: .touchUpInside)
+        mapIconButton.addTarget(self, action: #selector(openKakaoMap), for: .touchUpInside)
     }
     
     // MARK: - Firestore
@@ -361,6 +399,8 @@ class ShopDetailVC: UIViewController {
     }
     
     private func updateUI(with shop: Shop) {
+        updateOpenStatus(open: shop.openTime, close: shop.closeTime)
+        
         nameLabel.text = shop.name
         ratingLabel.text = "⭐️ \(String(format: "%.1f", shop.rating)) (\(shop.reviewCount) 리뷰)"
         locationLabel.text = shop.address ?? "주소 정보 없음"
@@ -378,6 +418,50 @@ class ShopDetailVC: UIViewController {
         """
         
         setupImageScrollView(with: shop.imageURLs)
+    }
+    
+    private func updateOpenStatus(open: String?, close: String?) {
+        guard let o = open, let c = close else {
+            openStatusBadge.isHidden = true
+            return
+        }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        
+        guard let openDate = formatter.date(from: o),
+              let closeDate = formatter.date(from: c) else {
+            openStatusBadge.isHidden = true
+            return
+        }
+        
+        let now = Date()
+        let cal = Calendar.current
+        
+        // 오늘 날짜로 매핑
+        let todayOpen = cal.date(
+            bySettingHour: cal.component(.hour, from: openDate),
+            minute: cal.component(.minute, from: openDate),
+            second: 0,
+            of: now
+        )!
+        
+        let todayClose = cal.date(
+            bySettingHour: cal.component(.hour, from: closeDate),
+            minute: cal.component(.minute, from: closeDate),
+            second: 0,
+            of: now
+        )!
+        
+        if now >= todayOpen && now <= todayClose {
+            openStatusBadge.text = "영업중"
+            openStatusBadge.backgroundColor = .systemGreen
+        } else {
+            openStatusBadge.text = "영업 종료"
+            openStatusBadge.backgroundColor = .systemGray
+        }
+        
+        openStatusBadge.isHidden = false
     }
     
     private func setupImageScrollView(with urls: [String]?) {
@@ -471,6 +555,31 @@ class ShopDetailVC: UIViewController {
                                           preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "확인", style: .default))
             present(alert, animated: true)
+        }
+    }
+    
+    @objc private func openKakaoMap() {
+        guard let addr = shop?.address else {
+            let alert = UIAlertController(title: "주소 없음",
+                                          message: "등록된 주소가 없어 길찾기가 불가능합니다.",
+                                          preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "확인", style: .default))
+            present(alert, animated: true)
+            return
+        }
+        
+        let encoded = addr.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        
+        // 카카오맵 앱
+        if let appURL = URL(string: "kakaomap://search?q=\(encoded)"),
+           UIApplication.shared.canOpenURL(appURL) {
+            UIApplication.shared.open(appURL)
+            return
+        }
+        
+        // 카카오맵 웹
+        if let webURL = URL(string: "https://map.kakao.com/?q=\(encoded)") {
+            UIApplication.shared.open(webURL)
         }
     }
     
