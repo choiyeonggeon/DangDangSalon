@@ -57,7 +57,7 @@ extension AdminVC: UITableViewDelegate, UITableViewDataSource {
         let item = menuItems[indexPath.row]
         
         switch item {
-            case "공지사항 작성":
+        case "공지사항 작성":
             let vc = NoticeWriteVC()
             navigationController?.pushViewController(vc, animated: true)
             
@@ -67,15 +67,15 @@ extension AdminVC: UITableViewDelegate, UITableViewDataSource {
             present(alert, animated: true)
             
         case "예약 신고 관리 (추가 예정)":
-                 let alert = UIAlertController(title: "준비 중", message: "예약 신고 관리 기능은 곧 추가됩니다!", preferredStyle: .alert)
-                 alert.addAction(UIAlertAction(title: "확인", style: .default))
-                 present(alert, animated: true)
+            let alert = UIAlertController(title: "준비 중", message: "예약 신고 관리 기능은 곧 추가됩니다!", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "확인", style: .default))
+            present(alert, animated: true)
             
         case "고객센터(관리자용)":
             let vc = AdminCustomerServiceListVC()
             navigationController?.pushViewController(vc, animated: true)
-
-             default: break
+            
+        default: break
         }
     }
 }

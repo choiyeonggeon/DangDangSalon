@@ -2,8 +2,6 @@
 //  SignupVC.swift
 //  DangDangSalon
 //
-//  Created by 최영건 on 10/23/25.
-//
 
 import UIKit
 import SnapKit
@@ -13,173 +11,251 @@ import FirebaseFirestore
 final class SignupVC: UIViewController, UITextFieldDelegate {
     
     // MARK: - UI
+    private let scrollView = UIScrollView()
+    private let containerView = UIView()
+    
     private let titleLabel: UILabel = {
         let lb = UILabel()
         lb.text = "회원가입"
-        lb.font = .boldSystemFont(ofSize: 24)
+        lb.font = .boldSystemFont(ofSize: 28)
+        lb.textAlignment = .left
         return lb
     }()
     
-    private let nicknameTextField = UITextField.makeSignupField(placeholder: "닉네임")
-    private let emailTextField = UITextField.makeSignupField(placeholder: "이메일", keyboardType: .emailAddress)
-    private let passwordTextField = UITextField.makeSignupField(placeholder: "비밀번호 (특수문자 포함, 최소 8자)", isSecure: true)
-    private let passwordConfirmTextField = UITextField.makeSignupField(placeholder: "비밀번호 확인", isSecure: true)
-    private let phoneNumberTextField = UITextField.makeSignupField(placeholder: "전화번호 예) +821012345678", keyboardType: .phonePad)
-    private let verifyCodeTextField = UITextField.makeSignupField(placeholder: "인증번호 입력", keyboardType: .numberPad, hidden: true)
+    // 입력 필드
+    private let nicknameTextField = UITextField.makeField(icon: "person.fill", placeholder: "닉네임")
+    private let emailTextField = UITextField.makeField(icon: "envelope.fill", placeholder: "이메일", keyboardType: .emailAddress)
+    private let passwordTextField = UITextField.makeField(icon: "lock.fill", placeholder: "비밀번호 (8자 · 특수문자 포함)", isSecure: true)
+    private let passwordConfirmTextField = UITextField.makeField(icon: "lock.rotation", placeholder: "비밀번호 확인", isSecure: true)
     
-    // 에러 라벨
-    private let nicknameErrorLabel = UILabel.makeErrorLabel()
-    private let emailErrorLabel = UILabel.makeErrorLabel()
-    private let passwordErrorLabel = UILabel.makeErrorLabel()
-    private let confirmErrorLabel = UILabel.makeErrorLabel()
-    private let phoneErrorLabel = UILabel.makeErrorLabel()
-    private let verifyErrorLabel = UILabel.makeErrorLabel()
+    // 전화번호 + 인증번호 전송
+    private let phoneFieldContainer = UIView()
+    private let phoneNumberTextField = UITextField.makeField(icon: "phone.fill", placeholder: "전화번호 (+8210...)")
     
     private let sendCodeButton: UIButton = {
         let btn = UIButton(type: .system)
-        btn.setTitle("인증번호 보내기", for: .normal)
-        btn.titleLabel?.font = .systemFont(ofSize: 14, weight: .bold)
-        btn.backgroundColor = .systemGray5
+        btn.setTitle("전송", for: .normal)
+        btn.backgroundColor = .systemBlue
+        btn.tintColor = .white
         btn.layer.cornerRadius = 8
+        btn.titleLabel?.font = .boldSystemFont(ofSize: 14)
         return btn
     }()
+    
+    // 인증번호 입력 + 타이머
+    private let verifyCodeContainer = UIView()
+    private let verifyCodeTextField = UITextField.makeField(icon: "number", placeholder: "인증번호 입력", keyboardType: .numberPad, hidden: true)
+    
+    private let timerLabel: UILabel = {
+        let lb = UILabel()
+        lb.font = .systemFont(ofSize: 13)
+        lb.textColor = .systemRed
+        lb.text = ""
+        return lb
+    }()
+    
+    // 에러 라벨
+    private let nicknameErrorLabel = UILabel.makeError()
+    private let emailErrorLabel = UILabel.makeError()
+    private let passwordErrorLabel = UILabel.makeError()
+    private let confirmErrorLabel = UILabel.makeError()
+    private let phoneErrorLabel = UILabel.makeError()
+    private let verifyErrorLabel = UILabel.makeError()
     
     private let signupButton: UIButton = {
         let btn = UIButton(type: .system)
-        btn.setTitle("회원가입", for: .normal)
-        btn.setTitleColor(.white, for: .normal)
-        btn.layer.cornerRadius = 10
-        btn.titleLabel?.font = .boldSystemFont(ofSize: 16)
+        btn.setTitle("회원가입 완료", for: .normal)
+        btn.titleLabel?.font = .boldSystemFont(ofSize: 18)
         btn.backgroundColor = .systemBlue
-        btn.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        btn.tintColor = .white
+        btn.layer.cornerRadius = 12
+        btn.heightAnchor.constraint(equalToConstant: 54).isActive = true
         return btn
     }()
     
+    // MARK: - Firebase
     private var verificationID: String?
     private let db = Firestore.firestore()
+    
+    // MARK: - Timer
+    private var timer: Timer?
+    private var timeLeft = 180 // 3분
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
+        
         setupUI()
-        setupTextFieldTargets()
+        setupActions()
+        setupKeyboardDismiss()
         
-        signupButton.addTarget(self, action: #selector(didTapSignupBtn), for: .touchUpInside)
-        sendCodeButton.addTarget(self, action: #selector(didTapSendCode), for: .touchUpInside)
-        
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
-        tapGesture.cancelsTouchesInView = false
-        view.addGestureRecognizer(tapGesture)
+        nicknameTextField.delegate = self
+        nicknameTextField.addTarget(self, action: #selector(nicknameEditingChanged(_:)), for: .editingChanged)
     }
     
-    // MARK: - UI 세팅
+    // MARK: - UI 구성
     private func setupUI() {
-        let phoneStack = UIStackView(arrangedSubviews: [phoneNumberTextField, sendCodeButton])
-        phoneStack.axis = .horizontal
-        phoneStack.spacing = 10
-        phoneStack.distribution = .fillProportionally
-        sendCodeButton.snp.makeConstraints { $0.width.equalTo(120) }
         
-        let fields = [
+        view.addSubview(scrollView)
+        scrollView.addSubview(containerView)
+        
+        scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        containerView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+            $0.width.equalTo(scrollView.snp.width)
+        }
+        
+        containerView.addSubview(titleLabel)
+        
+        // 전화번호 + 전송버튼
+        phoneFieldContainer.addSubview(phoneNumberTextField)
+        phoneFieldContainer.addSubview(sendCodeButton)
+        
+        phoneNumberTextField.snp.makeConstraints {
+            $0.leading.top.bottom.equalToSuperview()
+        }
+        sendCodeButton.snp.makeConstraints {
+            $0.leading.equalTo(phoneNumberTextField.snp.trailing).offset(10)
+            $0.trailing.centerY.equalToSuperview()
+            $0.width.equalTo(70)
+            $0.height.equalTo(40)
+        }
+        
+        // 인증번호 + 타이머
+        verifyCodeContainer.addSubview(verifyCodeTextField)
+        verifyCodeContainer.addSubview(timerLabel)
+        
+        verifyCodeTextField.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview()
+        }
+        timerLabel.snp.makeConstraints {
+            $0.top.equalTo(verifyCodeTextField.snp.bottom).offset(4)
+            $0.leading.equalToSuperview().offset(4)
+            $0.bottom.equalToSuperview()
+        }
+        
+        // Stack
+        let stack = UIStackView(arrangedSubviews: [
             nicknameTextField, nicknameErrorLabel,
             emailTextField, emailErrorLabel,
             passwordTextField, passwordErrorLabel,
             passwordConfirmTextField, confirmErrorLabel,
-            phoneStack, phoneErrorLabel,
-            verifyCodeTextField, verifyErrorLabel,
+            phoneFieldContainer, phoneErrorLabel,
+            verifyCodeContainer, verifyErrorLabel,
             signupButton
-        ]
+        ])
+        stack.axis = .vertical
+        stack.spacing = 14
         
-        let stackView = UIStackView(arrangedSubviews: fields)
-        stackView.axis = .vertical
-        stackView.spacing = 10
-        stackView.alignment = .fill
-        
-        view.addSubview(titleLabel)
-        view.addSubview(stackView)
+        containerView.addSubview(stack)
         
         titleLabel.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide.snp.top).offset(50)
-            $0.centerX.equalToSuperview()
+            $0.top.equalToSuperview().offset(30)
+            $0.leading.trailing.equalToSuperview().inset(20)
         }
-        stackView.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(30)
-            $0.leading.trailing.equalToSuperview().inset(40)
-        }
-    }
-    
-    // MARK: - 실시간 에러 제거 설정
-    private func setupTextFieldTargets() {
-        [nicknameTextField, emailTextField, passwordTextField, passwordConfirmTextField, phoneNumberTextField, verifyCodeTextField].forEach {
-            $0.addTarget(self, action: #selector(textFieldDidChange(_:)), for: .editingChanged)
-            $0.delegate = self
+        stack.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(20)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalToSuperview().offset(-50)
         }
     }
     
-    @objc private func dismissKeyboard() {
-        view.endEditing(true)
+    private func setupActions() {
+        sendCodeButton.addTarget(self, action: #selector(sendCode), for: .touchUpInside)
+        signupButton.addTarget(self, action: #selector(signup), for: .touchUpInside)
     }
     
-    @objc private func textFieldDidChange(_ textField: UITextField) {
-        switch textField {
-        case nicknameTextField: nicknameErrorLabel.text = ""
-        case emailTextField: emailErrorLabel.text = ""
-        case passwordTextField: passwordErrorLabel.text = ""
-        case passwordConfirmTextField: confirmErrorLabel.text = ""
-        case phoneNumberTextField: phoneErrorLabel.text = ""
-        case verifyCodeTextField: verifyErrorLabel.text = ""
-        default: break
+    private func setupKeyboardDismiss() {
+        let tap = UITapGestureRecognizer(target: self, action: #selector(closeKeyboard))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+    }
+    @objc private func closeKeyboard() { view.endEditing(true) }
+    
+    // MARK: - 닉네임 실시간 중복 체크
+    @objc private func nicknameEditingChanged(_ tf: UITextField) {
+        guard let nickname = tf.text, !nickname.isEmpty else {
+            nicknameErrorLabel.text = ""
+            return
         }
-    }
-    
-    private func clearErrors() {
-        [nicknameErrorLabel, emailErrorLabel, passwordErrorLabel, confirmErrorLabel, phoneErrorLabel, verifyErrorLabel].forEach { $0.text = "" }
-    }
-    
-    private func isValidPassword(_ password: String) -> Bool {
-        let regex = "^(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
-        return NSPredicate(format: "SELF MATCHES %@", regex).evaluate(with: password)
-    }
-    
-    private func checkNicknameDuplicate(_ nickname: String, completion: @escaping (Bool) -> Void) {
+        
+        // 타자칠 때마다 부드럽게 애니메이션
+        UIView.animate(withDuration: 0.2) {
+            self.nicknameErrorLabel.alpha = 1
+        }
+        
         db.collection("users")
             .whereField("nickname", isEqualTo: nickname)
             .getDocuments { snapshot, _ in
-                completion(snapshot?.documents.isEmpty ?? true)
+                if let docs = snapshot?.documents, !docs.isEmpty {
+                    self.nicknameErrorLabel.text = "이미 사용 중인 닉네임입니다."
+                    self.nicknameErrorLabel.textColor = .systemRed
+                } else {
+                    self.nicknameErrorLabel.text = "사용 가능한 닉네임입니다."
+                    self.nicknameErrorLabel.textColor = .systemGreen
+                }
             }
     }
     
-    private func checkEmailDuplicate(_ email: String, completion: @escaping (Bool) -> Void) {
-        db.collection("users")
-            .whereField("email", isEqualTo: email)
-            .getDocuments { snapshot, _ in
-                completion(snapshot?.documents.isEmpty ?? true)
+    // MARK: - 타이머 시작
+    private func startTimer() {
+        timeLeft = 180
+        timerLabel.text = "남은 시간: 03:00"
+        
+        timer?.invalidate()
+        
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            self.timeLeft -= 1
+            let min = self.timeLeft / 60
+            let sec = self.timeLeft % 60
+            
+            self.timerLabel.text = String(format: "남은 시간: %02d:%02d", min, sec)
+            
+            if self.timeLeft <= 0 {
+                self.timer?.invalidate()
+                self.timerLabel.text = "인증 시간이 만료되었습니다."
             }
+        }
     }
     
     // MARK: - 인증번호 전송
-    @objc private func didTapSendCode() {
-        clearErrors()
+    @objc private func sendCode() {
         guard let phone = phoneNumberTextField.text, !phone.isEmpty else {
             phoneErrorLabel.text = "전화번호를 입력해주세요."
             return
         }
         
-        PhoneAuthProvider.provider().verifyPhoneNumber(phone, uiDelegate: nil) { verificationID, error in
+        PhoneAuthProvider.provider().verifyPhoneNumber(phone, uiDelegate: nil) { id, error in
             if let error = error {
                 self.phoneErrorLabel.text = error.localizedDescription
                 return
             }
-            self.verificationID = verificationID
+            
+            self.verificationID = id
             self.verifyCodeTextField.isHidden = false
-            self.verifyErrorLabel.text = "인증번호가 전송되었습니다."
+            self.verifyErrorLabel.text = "인증번호가 발송되었습니다."
+            
+            // 타이머 시작
+            self.startTimer()
         }
     }
     
+    // MARK: - 비밀번호 정규식 검사
+    private func isValidPassword(_ pw: String) -> Bool {
+        let regex = "^(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
+        return NSPredicate(format: "SELF MATCHES %@", regex).evaluate(with: pw)
+    }
+    
     // MARK: - 회원가입
-    @objc private func didTapSignupBtn() {
-        clearErrors()
+    @objc private func signup() {
+        
+        nicknameErrorLabel.text = ""
+        emailErrorLabel.text = ""
+        passwordErrorLabel.text = ""
+        confirmErrorLabel.text = ""
+        phoneErrorLabel.text = ""
+        verifyErrorLabel.text = ""
         
         guard let nickname = nicknameTextField.text, !nickname.isEmpty else {
             nicknameErrorLabel.text = "닉네임을 입력해주세요."
@@ -189,20 +265,16 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
             emailErrorLabel.text = "이메일을 입력해주세요."
             return
         }
-        guard let password = passwordTextField.text, !password.isEmpty else {
+        guard let pw = passwordTextField.text, !pw.isEmpty else {
             passwordErrorLabel.text = "비밀번호를 입력해주세요."
             return
         }
-        guard let confirm = passwordConfirmTextField.text, !confirm.isEmpty else {
-            confirmErrorLabel.text = "비밀번호를 다시 입력해주세요."
+        guard isValidPassword(pw) else {
+            passwordErrorLabel.text = "특수문자 포함 8자 이상 입력해주세요."
             return
         }
-        guard password == confirm else {
+        guard pw == passwordConfirmTextField.text else {
             confirmErrorLabel.text = "비밀번호가 일치하지 않습니다."
-            return
-        }
-        guard isValidPassword(password) else {
-            passwordErrorLabel.text = "비밀번호는 8자 이상, 특수문자를 포함해야 합니다."
             return
         }
         guard let phone = phoneNumberTextField.text, !phone.isEmpty else {
@@ -210,97 +282,93 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
             return
         }
         
-        checkNicknameDuplicate(nickname) { isNickOK in
-            DispatchQueue.main.async {
-                guard isNickOK else {
-                    self.nicknameErrorLabel.text = "이미 사용 중인 닉네임입니다."
-                    return
-                }
-                self.checkEmailDuplicate(email) { isEmailOK in
-                    DispatchQueue.main.async {
-                        guard isEmailOK else {
-                            self.emailErrorLabel.text = "이미 가입된 이메일입니다."
-                            return
-                        }
-                        
-                        guard let verificationID = self.verificationID,
-                              let code = self.verifyCodeTextField.text, !code.isEmpty else {
-                            self.verifyErrorLabel.text = "휴대폰 인증을 완료해주세요."
-                            return
-                        }
-                        
-                        let credential = PhoneAuthProvider.provider().credential(
-                            withVerificationID: verificationID,
-                            verificationCode: code
-                        )
-                        
-                        Auth.auth().signIn(with: credential) { _, error in
-                            if let error = error {
-                                self.verifyErrorLabel.text = "인증 실패: \(error.localizedDescription)"
-                                return
-                            }
-                            self.createAccount(email: email, password: password, nickname: nickname, phone: phone)
-                        }
-                    }
-                }
+        // 인증번호 체크
+        guard let vid = verificationID,
+              let code = verifyCodeTextField.text, !code.isEmpty else {
+            verifyErrorLabel.text = "인증번호를 입력해주세요."
+            return
+        }
+        
+        let credential = PhoneAuthProvider.provider().credential(withVerificationID: vid, verificationCode: code)
+        
+        Auth.auth().signIn(with: credential) { _, error in
+            if let error = error {
+                self.verifyErrorLabel.text = "인증 실패: \(error.localizedDescription)"
+                return
             }
+            
+            // 이메일 계정 생성
+            self.createAccount(email: email, pw: pw, nickname: nickname, phone: phone)
         }
     }
     
-    // MARK: - 계정 생성
-    private func createAccount(email: String, password: String, nickname: String, phone: String) {
-        Auth.auth().createUser(withEmail: email, password: password) { result, error in
-            if let error = error as NSError? {
-                if error.code == AuthErrorCode.emailAlreadyInUse.rawValue {
-                    self.emailErrorLabel.text = "이미 등록된 이메일입니다."
-                } else {
-                    self.emailErrorLabel.text = error.localizedDescription
-                }
+    // MARK: - Firestore 저장
+    private func createAccount(email: String, pw: String, nickname: String, phone: String) {
+        Auth.auth().createUser(withEmail: email, password: pw) { result, error in
+            if let error = error {
+                self.emailErrorLabel.text = error.localizedDescription
                 return
             }
             
             guard let uid = result?.user.uid else { return }
+            
             self.db.collection("users").document(uid).setData([
                 "nickname": nickname,
                 "email": email,
                 "phone": phone,
                 "createdAt": Timestamp(date: Date())
-            ]) { error in
-                if let error = error {
-                    self.emailErrorLabel.text = "저장 실패: \(error.localizedDescription)"
-                } else {
-                    let alert = UIAlertController(title: "회원가입 완료", message: "정상적으로 가입되었습니다.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "확인", style: .default))
-                    self.present(alert, animated: true)
-                }
-            }
+            ])
+            
+            let alert = UIAlertController(title: "가입 완료",
+                                          message: "회원가입이 완료되었습니다.",
+                                          preferredStyle: .alert)
+
+            alert.addAction(UIAlertAction(title: "확인", style: .default, handler: { _ in
+                let tabBarVC = MainTabBarController()
+                tabBarVC.modalPresentationStyle = .fullScreen
+                self.present(tabBarVC, animated: true)
+            }))
+            self.present(alert, animated: true)
+
         }
     }
 }
 
-// MARK: - Helper Extensions
+// MARK: - UI 커스텀 Extension
 private extension UITextField {
-    static func makeSignupField(placeholder: String,
-                                keyboardType: UIKeyboardType = .default,
-                                isSecure: Bool = false,
-                                hidden: Bool = false) -> UITextField {
+    static func makeField(icon: String,
+                          placeholder: String,
+                          keyboardType: UIKeyboardType = .default,
+                          isSecure: Bool = false,
+                          hidden: Bool = false) -> UITextField {
+        
         let tf = UITextField()
         tf.placeholder = placeholder
         tf.borderStyle = .roundedRect
         tf.keyboardType = keyboardType
         tf.isSecureTextEntry = isSecure
         tf.isHidden = hidden
+        tf.backgroundColor = .secondarySystemBackground
+        
+        let iv = UIImageView(image: UIImage(systemName: icon))
+        iv.tintColor = .gray
+        iv.frame = CGRect(x: 0, y: 0, width: 20, height: 20)
+        
+        tf.leftView = iv
+        tf.leftViewMode = .always
+        
+        tf.heightAnchor.constraint(equalToConstant: 52).isActive = true
+
         return tf
     }
 }
 
 private extension UILabel {
-    static func makeErrorLabel() -> UILabel {
+    static func makeError() -> UILabel {
         let lb = UILabel()
-        lb.font = .systemFont(ofSize: 12)
         lb.textColor = .systemRed
+        lb.font = .systemFont(ofSize: 12)
         lb.numberOfLines = 0
-        lb.text = ""
         return lb
     }
 }

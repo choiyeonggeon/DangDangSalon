@@ -148,7 +148,7 @@ class ShopDetailVC: UIViewController {
         checkIfFavorite()
         fetchReviews()
         
-        observeShopRating() 
+        observeShopRating()
         updateReserveButtonState()
     }
     
@@ -347,11 +347,15 @@ class ShopDetailVC: UIViewController {
         locationLabel.text = shop.address ?? "주소 정보 없음"
         
         introLabel.text = shop.intro ?? "소개글이 없습니다."
-        
         infoLabel.text = """
         영업시간: \(shop.openTime ?? "미정") ~ \(shop.closeTime ?? "미정")
+        영업일: \(shop.workingDays ?? "정보 없음")
+        
         전화번호: \(shop.phone ?? "정보 없음")
         주소: \(shop.address ?? "정보 없음")
+        
+        대표자명: \(shop.ownerName ?? "정보 없음")
+        사업자등록번호: \(shop.businessNumber ?? "정보 없음")
         """
         
         setupImageScrollView(with: shop.imageURLs)
@@ -491,15 +495,15 @@ class ShopDetailVC: UIViewController {
     
     private func observeShopRating() {
         guard let shopId = shopId else { return }
-
+        
         db.collection("shops").document(shopId)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self,
                       let data = snapshot?.data() else { return }
-
+                
                 let newRating = data["rating"] as? Double ?? 0.0
                 let reviewCount = data["reviewCount"] as? Int ?? self.reviews.count
-
+                
                 DispatchQueue.main.async {
                     self.ratingLabel.text = "⭐️ \(String(format: "%.1f", newRating)) (\(reviewCount) 리뷰)"
                 }

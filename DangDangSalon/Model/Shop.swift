@@ -23,8 +23,14 @@ struct Shop {
     let address: String?
     let phone: String?
     let intro: String?
+    
     let openTime: String?
     let closeTime: String?
+    
+    let ownerName: String?
+    let businessNumber: String?
+    let workingDays: String?
+    
     let category: String?
     let createdAt: Date?
     
@@ -38,9 +44,8 @@ struct Shop {
         
         self.id = document.documentID
         self.name = name
-        
-        // 🔥 평균 별점 읽어오기 (avgRating)
         self.rating = data["avgRating"] as? Double ?? 0.0
+        self.reviewCount = data["reviewCount"] as? Int ?? 0
         
         self.imageURLs = data["imageURLs"] as? [String]
         self.distanceMeter = data["distanceMeter"] as? Int
@@ -51,7 +56,6 @@ struct Shop {
         self.openTime = data["openTime"] as? String
         self.closeTime = data["closeTime"] as? String
         self.category = data["category"] as? String
-        self.reviewCount = data["reviewCount"] as? Int ?? 0
         self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue()
         
         // 🔥 Firestore 좌표 필드 읽기
@@ -61,5 +65,9 @@ struct Shop {
         self.isAds = data["isAds"] as? Bool ?? false
         self.isNew = data["isNew"] as? Bool ?? false
         self.isRecommended = data["isRecommended"] as? Bool ?? false
+        
+        self.ownerName = data["ownerName"] as? String
+        self.businessNumber = data["businessNumber"] as? String
+        self.workingDays = data["workingDays"] as? String
     }
 }

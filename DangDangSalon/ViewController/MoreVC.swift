@@ -109,6 +109,7 @@ final class MoreVC: UIViewController {
                 "결제 내역",
                 "공지사항",
                 "고객센터",
+                "개인정보처리방침",
                 "앱 버전 정보",
                 "회원탈퇴"
             ]
@@ -119,6 +120,7 @@ final class MoreVC: UIViewController {
                 "결제 내역",
                 "공지사항",
                 "고객센터",
+                "개인정보처리방침",
                 "앱 버전 정보"
             ]
         }
@@ -203,6 +205,9 @@ extension MoreVC: UITableViewDelegate, UITableViewDataSource {
             
         case "고객센터":
             navigationController?.pushViewController(CustomerServiceVC(), animated: true)
+            
+        case "개인정보처리방침":
+            navigationController?.pushViewController(PDFViewrVC(), animated: true)
             
         case "앱 버전 정보":
             if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {

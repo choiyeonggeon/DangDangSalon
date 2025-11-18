@@ -7,6 +7,7 @@
 
 import UIKit
 import SnapKit
+import SDWebImage
 
 class RecommendedShopCell: UICollectionViewCell {
     
@@ -92,8 +93,12 @@ class RecommendedShopCell: UICollectionViewCell {
         nameLabel.text = shop.name
         ratingLabel.text = String(format: "%.1f", shop.rating)
         
-        if let imageURLs = shop.imageURLs {
-            
+        if let imageURLs = shop.imageURLs,
+           let firstURL = imageURLs.first {
+            shopImageView.sd_setImage(
+                with: URL(string: imageURLs.first ?? ""),
+                placeholderImage: UIImage(systemName: "scissors")
+            )
         } else {
             shopImageView.image = UIImage(systemName: "scissors")
         }
