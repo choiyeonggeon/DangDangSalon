@@ -11,9 +11,14 @@ import SnapKit
 final class ReservationCell: UITableViewCell {
     
     private let cardView = UIView()
-    private let titleLabel = UILabel()
+    
+    private let shopNameLabel = UILabel()
+    private let menusLabel = UILabel()
+    
     private let statusLabel = UILabel()
+    
     private let reviewButton = UIButton(type: .system)
+    
     var writeReviewAction: (() -> Void)?
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -34,15 +39,20 @@ final class ReservationCell: UITableViewCell {
         cardView.layer.shadowOffset = CGSize(width: 0, height: 2)
         cardView.layer.shadowRadius = 5
         contentView.addSubview(cardView)
-        [titleLabel, statusLabel, reviewButton].forEach { cardView.addSubview($0) }
+        [shopNameLabel, menusLabel, statusLabel, reviewButton].forEach { cardView.addSubview($0) }
         
         cardView.snp.makeConstraints {
             $0.edges.equalToSuperview().inset(UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4))
             $0.height.greaterThanOrEqualTo(80)
         }
         
-        titleLabel.font = .boldSystemFont(ofSize: 16)
-        titleLabel.textColor = .label
+        shopNameLabel.font = .boldSystemFont(ofSize: 17)
+        shopNameLabel.textColor = .label
+        
+        menusLabel.font = .systemFont(ofSize: 14)
+        menusLabel.textColor = .secondaryLabel
+        menusLabel.numberOfLines = 1
+        
         statusLabel.font = .systemFont(ofSize: 14)
         statusLabel.textColor = .secondaryLabel
         
@@ -53,14 +63,19 @@ final class ReservationCell: UITableViewCell {
         reviewButton.layer.cornerRadius = 8
         reviewButton.addTarget(self, action: #selector(writeReviewTapped), for: .touchUpInside)
         
-        titleLabel.snp.makeConstraints {
+        shopNameLabel.snp.makeConstraints {
             $0.top.leading.equalToSuperview().inset(16)
             $0.trailing.lessThanOrEqualTo(reviewButton.snp.leading).offset(-8)
         }
         
+        menusLabel.snp.makeConstraints {
+            $0.top.equalTo(shopNameLabel.snp.bottom).offset(4)
+            $0.leading.equalTo(shopNameLabel)
+        }
+        
         statusLabel.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(4)
-            $0.leading.equalTo(titleLabel)
+            $0.top.equalTo(menusLabel.snp.bottom).offset(4)
+            $0.leading.equalTo(shopNameLabel)
             $0.bottom.equalToSuperview().inset(16)
         }
         
@@ -73,17 +88,23 @@ final class ReservationCell: UITableViewCell {
     }
     
     func configure(with reservation: Reservation) {
-        titleLabel.text = "\(reservation.shopName) · \(reservation.menus)"
+        
+        shopNameLabel.text = reservation.shopName
+        menusLabel.text = reservation.menus.joined(separator: ", ")
+        
         switch reservation.status {
         case "pending":
             statusLabel.text = "예약 중"
             reviewButton.isHidden = true
+            
         case "completed":
             statusLabel.text = "이용 완료"
             reviewButton.isHidden = reservation.reviewWritten
+            
         case "cancelled":
             statusLabel.text = "취소됨"
             reviewButton.isHidden = true
+            
         default:
             statusLabel.text = reservation.status
             reviewButton.isHidden = true
