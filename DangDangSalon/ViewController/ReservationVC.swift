@@ -215,6 +215,7 @@ final class ReservationVC: UIViewController {
         
         db.collection("reservations")
             .whereField("shopId", isEqualTo: shopId)
+            .whereField("status", in: ["예약 요청", "확정"])   // ⬅ 중요!! 취소, 완료는 제외
             .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: startOfDay))
             .whereField("date", isLessThan: Timestamp(date: endOfDay))
             .getDocuments { [weak self] snapshot, error in
