@@ -32,7 +32,7 @@ final class SignupVC: UIViewController, UITextFieldDelegate {
     
     // 전화번호 + 인증번호 전송
     private let phoneFieldContainer = UIView()
-    private let phoneNumberTextField = UITextField.makeField(icon: "phone.fill", placeholder: "전화번호 (+8210...)")
+    private let phoneNumberTextField = UITextField.makeField(icon: "phone.fill", placeholder: "전화번호 (010...)")
     
     private let sendCodeButton: UIButton = {
         let btn = UIButton(type: .system)

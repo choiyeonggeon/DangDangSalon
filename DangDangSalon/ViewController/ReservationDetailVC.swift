@@ -113,13 +113,50 @@ final class ReservationDetailVC: UIViewController {
     
     private let guideLabel: UILabel = {
         let lb = UILabel()
-        lb.text = "예약 2시간 전까지만 취소 가능하며,\n예약 요청 24시간 이후에는 10%의 수수료가 부과됩니다."
+        lb.text = "예약 2시간 전까지만 취소 가능합니다."
         lb.font = .systemFont(ofSize: 13, weight: .regular)
         lb.textColor = .secondaryLabel
         lb.textAlignment = .center
         lb.numberOfLines = 0
         lb.isHidden = true
         return lb
+    }()
+    
+    private let callIconButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setImage(UIImage(systemName: "phone.fill"), for: .normal)
+        btn.tintColor = .systemGreen
+        btn.contentHorizontalAlignment = .fill
+        btn.contentVerticalAlignment = .fill
+        return btn
+    }()
+    
+    private let mapIconButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setImage(UIImage(systemName: "map.fill"), for: .normal)
+        btn.tintColor = .systemBlue
+        btn.contentHorizontalAlignment = .fill
+        btn.contentVerticalAlignment = .fill
+        return btn
+    }()
+    
+    private let reportIconButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setImage(UIImage(systemName: "exclamationmark.triangle.fill"), for: .normal)
+        btn.tintColor = .systemRed
+        btn.contentHorizontalAlignment = .fill
+        btn.contentVerticalAlignment = .fill
+        btn.imageView?.contentMode = .scaleAspectFit
+        return btn
+    }()
+    
+    private let actionIconStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.distribution = .equalCentering
+        stack.spacing = 40
+        return stack
     }()
     
     override func viewDidLoad() {
@@ -160,11 +197,17 @@ final class ReservationDetailVC: UIViewController {
         view.addSubview(cancelButton)
         view.addSubview(reviewButton)
         view.addSubview(guideLabel)
+        view.addSubview(actionIconStack)
+        
+        actionIconStack.addArrangedSubview(callIconButton)
+        actionIconStack.addArrangedSubview(mapIconButton)
+        actionIconStack.addArrangedSubview(reportIconButton)
         
         scrollView.snp.makeConstraints {
             $0.top.leading.trailing.equalTo(view.safeAreaLayoutGuide)
             $0.bottom.equalTo(cancelButton.snp.top).offset(-16)
         }
+        
         contentView.snp.makeConstraints {
             $0.edges.equalToSuperview()
             $0.width.equalTo(scrollView.snp.width)
@@ -194,6 +237,7 @@ final class ReservationDetailVC: UIViewController {
         stack.layoutMargins = UIEdgeInsets(top: 24, left: 20, bottom: 24, right: 20)
         
         cardView.addSubview(stack)
+        
         cardView.snp.makeConstraints {
             $0.top.equalTo(sectionHeader.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview().inset(20)
@@ -202,6 +246,12 @@ final class ReservationDetailVC: UIViewController {
         
         contentView.snp.makeConstraints {
             $0.bottom.equalTo(cardView.snp.bottom).offset(40)
+        }
+        
+        actionIconStack.snp.makeConstraints {
+            $0.top.equalTo(cardView.snp.bottom).offset(20)
+            $0.centerX.equalToSuperview()
+            $0.height.equalTo(40)
         }
         
         cancelButton.snp.makeConstraints {
@@ -223,6 +273,9 @@ final class ReservationDetailVC: UIViewController {
         
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         reviewButton.addTarget(self, action: #selector(writeReviewTapped), for: .touchUpInside)
+        mapIconButton.addTarget(self, action: #selector(openMap), for: .touchUpInside)
+        callIconButton.addTarget(self, action: #selector(callShop), for: .touchUpInside)
+        reportIconButton.addTarget(self, action: #selector(reportTapped), for: .touchUpInside)
     }
     
     private func configureData() {
@@ -357,6 +410,104 @@ final class ReservationDetailVC: UIViewController {
                                     width: 0, height: 0)
             pop.permittedArrowDirections = []
         }
+        
+        present(alert, animated: true)
+    }
+    
+    private func submitReservationReport(userId: String, reservation: Reservation, reason: String) {
+        
+        let reportId = UUID().uuidString
+        
+        let data: [String: Any] = [
+            "reportId": reportId,
+            "reservationId": reservation.id,
+            "reporterId": userId,
+            "targetOwnerId": reservation.ownerId,
+            "reason": reason,
+            "status": "pending",
+            "createdAt": Timestamp()
+        ]
+        
+        db.collection("reservationReports").document(reportId).setData(data) { err in
+            if let err = err {
+                self.showAlert(title: "오류", message: "신고 접수에 실패했습니다.\n\(err.localizedDescription)")
+                return
+            }
+            
+            self.showAlert(title: "신고 완료", message: "신고가 정상적으로 접수되었습니다.")
+        }
+    }
+    
+    @objc private func openMap() {
+        guard let r = reservation else { return }
+        
+        guard let addr = r.address, !addr.isEmpty else {
+            showAlert(title: "주소 없음", message: "해당 샵의 주소 정보가 없습니다.")
+            return
+        }
+        
+        let encoded = addr.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        
+        // 카카오맵 앱
+        if let appURL = URL(string: "kakaomap://search?q=\(encoded)"),
+           UIApplication.shared.canOpenURL(appURL) {
+            UIApplication.shared.open(appURL)
+            return
+        }
+        
+        // 카카오맵 웹
+        if let webURL = URL(string: "https://map.kakao.com/?q=\(encoded)") {
+            UIApplication.shared.open(webURL)
+        }
+    }
+    
+    @objc private func callShop() {
+        guard let r = reservation else { return }
+        
+        guard let rawPhone = r.phone else {
+            showAlert(title: "전화번호 없음", message: "해당 샵의 전화번호가 없습니다.")
+            return
+        }
+        
+        let phone = rawPhone.replacingOccurrences(of: "-", with: "")
+        
+        if phone.isEmpty {
+            showAlert(title: "전화번호 없음", message: "해당 샵의 전화번호가 없습니다.")
+            return
+        }
+        
+        if let url = URL(string: "tel://\(phone)") {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    @objc private func reportTapped() {
+        guard let userId = Auth.auth().currentUser?.uid,
+              let r = reservation else { return }
+        
+        let alert = UIAlertController(
+            title: "예약 신고하기",
+            message: "신고 사유를 입력해주세요.",
+            preferredStyle: .alert
+        )
+        
+        alert.addTextField { tf in
+            tf.placeholder = "예: 매장이 임의로 예약을 취소했어요"
+        }
+        
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        alert.addAction(UIAlertAction(title: "신고하기", style: .destructive, handler: { _ in
+            
+            let reason = alert.textFields?.first?.text?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            
+            if reason.isEmpty {
+                self.showAlert(title: "입력 필요", message: "신고 사유를 입력해주세요.")
+                return
+            }
+            
+            self.submitReservationReport(userId: userId, reservation: r, reason: reason)
+        }))
         
         present(alert, animated: true)
     }

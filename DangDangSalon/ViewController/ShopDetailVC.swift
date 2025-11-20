@@ -189,7 +189,6 @@ class ShopDetailVC: UIViewController {
     }
     
     @objc private func reserveButtonTapped() {
-        
         guard let shop = self.shop else { return }
         
         let shopId = shop.id
@@ -199,6 +198,7 @@ class ShopDetailVC: UIViewController {
             vc.shopId = shopId
             vc.shopName = shop.name
             vc.menus = menus
+            vc.shopAddress = shop.address
             
             vc.modalPresentationStyle = .pageSheet
             if let sheet = vc.sheetPresentationController {

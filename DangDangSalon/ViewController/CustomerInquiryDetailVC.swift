@@ -72,7 +72,7 @@ final class CustomerInquiryDetailVC: UIViewController {
         lb.setContentCompressionResistancePriority(.required, for: .horizontal)
         return lb
     }()
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
@@ -142,7 +142,7 @@ final class CustomerInquiryDetailVC: UIViewController {
             $0.leading.trailing.equalToSuperview().inset(20)
             $0.bottom.equalToSuperview().inset(30)
         }
-            
+        
     }
     
     private func configureUI() {

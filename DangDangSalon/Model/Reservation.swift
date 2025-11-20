@@ -21,7 +21,12 @@ struct Reservation {
     let time: String
     var status: String
     let createdAt: Date
-    var reviewWritten: Bool     // ✅ 리뷰 작성 여부 (false가 기본)
+    var reviewWritten: Bool
+    
+    let address: String?
+    let latitude: Double?
+    let longitude: Double?
+    let phone: String?
 
     // MARK: - Firestore 문서 → 모델 변환
     init?(document: DocumentSnapshot) {
@@ -40,7 +45,12 @@ struct Reservation {
         createdAt = (data["createdAt"] as? Timestamp)?.dateValue()
                  ?? (data["timestamp"] as? Timestamp)?.dateValue()
                  ?? Date()
-        reviewWritten = data["reviewWritten"] as? Bool ?? false   // ✅ 기본값 false
+        reviewWritten = data["reviewWritten"] as? Bool ?? false
+        
+        self.latitude = data["latitude"] as? Double
+        self.longitude = data["longitude"] as? Double
+        self.address = data["address"] as? String
+        self.phone = data["phone"] as? String
     }
 
     // MARK: - UI용 포맷터

@@ -42,7 +42,7 @@ class MyInfoVC: UIViewController {
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
     private let actionButton = UIButton(type: .system)
     
-    private var menuItems: [String] = ["예약 내역", "즐겨찾기", "고객센터", "닉네임 변경"]
+    private var menuItems: [String] = ["예약 내역", "즐겨찾기", "고객센터", "닉네임 변경", "비밀번호 변경"]
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
@@ -300,6 +300,11 @@ extension MyInfoVC: UITableViewDataSource, UITableViewDelegate {
         case 3:
             requireLogin {
                 self.changeNickname()
+            }
+            
+        case 4:
+            requireLogin {
+                self.navigationController?.pushViewController(ChangePasswordVC(), animated: true)
             }
         default:
             break

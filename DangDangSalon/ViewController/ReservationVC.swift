@@ -16,6 +16,11 @@ final class ReservationVC: UIViewController {
     var shopId: String?
     var shopName: String?
     
+    var shopLat: Double?
+    var shopLng: Double?
+    var shopPhone: String?
+    var shopAddress: String?
+    
     // 파이어스토어에서 받아오는 데이터
     private var availableTimes: [String] = []      // 이 샵이 원래 받는 시간들
     private var reservedTimes: [String] = []       // 이미 예약된 슬롯 (해당 날짜 기준)
@@ -453,7 +458,12 @@ final class ReservationVC: UIViewController {
                         "createdAt": Timestamp(date: Date()),
                         "phone": phone,
                         "request": requestText ?? "",
-                        "reviewWritten": false
+                        "reviewWritten": false,
+                        
+                        "address": self.shopAddress ?? "",
+                        "shopPhone": self.shopPhone ?? "",
+                        "shopLat": self.shopLat ?? 0,
+                        "shopLng": self.shopLng ?? 0
                     ]
                     
                     self.db.collection("reservations").document(reservationId).setData(data) { err in

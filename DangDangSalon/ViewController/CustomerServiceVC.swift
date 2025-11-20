@@ -95,9 +95,6 @@ final class CustomerServiceVC: UIViewController {
             return
         }
         
-        activityIndicator.startAnimating()
-        tableView.isUserInteractionEnabled = false
-        
         db.collection("users")
             .document(uid)
             .collection("customerInquiries")
@@ -111,8 +108,17 @@ final class CustomerServiceVC: UIViewController {
                 }
                 
                 self.inquiries = snapshot?.documents.compactMap { CustomerInquiry(document: $0) } ?? []
+                
                 DispatchQueue.main.async {
-                    self.tableView.reloadData()
+                    if self.inquiries.isEmpty {
+                        self.emptyLabel.text = "아직 문의하신 내용이 없어요. 💬"
+                        self.emptyLabel.isHidden = false
+                        self.tableView.isHidden = true
+                    } else {
+                        self.emptyLabel.isHidden = true
+                        self.tableView.isHidden = false
+                        self.tableView.reloadData()
+                    }
                 }
             }
     }
