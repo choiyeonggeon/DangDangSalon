@@ -40,6 +40,18 @@ final class ReservationDetailVC: UIViewController {
         return v
     }()
     
+    // 🔹 새로 추가: 액션(전화/지도/신고)용 카드
+    private let actionsCardView: UIView = {
+        let v = UIView()
+        v.backgroundColor = .systemBackground
+        v.layer.cornerRadius = 20
+        v.layer.shadowColor = UIColor.black.withAlphaComponent(0.08).cgColor
+        v.layer.shadowOpacity = 0.18
+        v.layer.shadowRadius = 8
+        v.layer.shadowOffset = CGSize(width: 0, height: 4)
+        return v
+    }()
+    
     private func makeRow(title: String) -> (container: UIStackView, valueLabel: UILabel) {
         let titleLabel = UILabel()
         titleLabel.text = title
@@ -65,6 +77,7 @@ final class ReservationDetailVC: UIViewController {
     private lazy var dateRow   = makeRow(title: "예약일")
     private lazy var timeRow   = makeRow(title: "예약 시간")
     private lazy var priceRow  = makeRow(title: "결제 금액")
+    private lazy var request = makeRow(title: "요청사항")
     private lazy var statusRow = makeRow(title: "상태")
     
     private let sectionHeader: UILabel = {
@@ -194,14 +207,17 @@ final class ReservationDetailVC: UIViewController {
         scrollView.addSubview(contentView)
         contentView.addSubview(sectionHeader)
         contentView.addSubview(cardView)
+        contentView.addSubview(actionsCardView)   // 🔹 액션 카드 추가
         view.addSubview(cancelButton)
         view.addSubview(reviewButton)
         view.addSubview(guideLabel)
-        view.addSubview(actionIconStack)
         
         actionIconStack.addArrangedSubview(callIconButton)
         actionIconStack.addArrangedSubview(mapIconButton)
         actionIconStack.addArrangedSubview(reportIconButton)
+        
+        // 🔹 스택은 actionsCardView 안으로
+        actionsCardView.addSubview(actionIconStack)
         
         scrollView.snp.makeConstraints {
             $0.top.leading.trailing.equalTo(view.safeAreaLayoutGuide)
@@ -221,14 +237,22 @@ final class ReservationDetailVC: UIViewController {
         let stack = UIStackView(arrangedSubviews: [
             shopRow.container,
             makeSeparator(),
+            
             menuRow.container,
             makeSeparator(),
+            
             dateRow.container,
             makeSeparator(),
+            
             timeRow.container,
             makeSeparator(),
+            
             priceRow.container,
             makeSeparator(),
+            
+            request.container,
+            makeSeparator(),
+            
             statusRow.container
         ])
         stack.axis = .vertical
@@ -242,16 +266,24 @@ final class ReservationDetailVC: UIViewController {
             $0.top.equalTo(sectionHeader.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview().inset(20)
         }
+        
         stack.snp.makeConstraints { $0.edges.equalToSuperview() }
         
-        contentView.snp.makeConstraints {
-            $0.bottom.equalTo(cardView.snp.bottom).offset(40)
+        // 🔹 액션 카드 레이아웃 (전화/지도/신고)
+        actionsCardView.snp.makeConstraints {
+            $0.top.equalTo(cardView.snp.bottom).offset(16)
+            $0.leading.trailing.equalToSuperview().inset(20)
         }
         
         actionIconStack.snp.makeConstraints {
-            $0.top.equalTo(cardView.snp.bottom).offset(20)
-            $0.centerX.equalToSuperview()
+            $0.top.bottom.equalToSuperview().inset(14)
+            $0.leading.trailing.equalToSuperview().inset(32)
             $0.height.equalTo(40)
+        }
+        
+        // 🔹 스크롤 콘텐츠 높이 = actionsCardView 기준
+        contentView.snp.makeConstraints {
+            $0.bottom.equalTo(actionsCardView.snp.bottom).offset(40)
         }
         
         cancelButton.snp.makeConstraints {
@@ -286,6 +318,7 @@ final class ReservationDetailVC: UIViewController {
         dateRow.valueLabel.text   = r.dateString
         timeRow.valueLabel.text   = r.time
         priceRow.valueLabel.text  = "\(r.priceString)"
+        request.valueLabel.text  = r.request
         statusRow.valueLabel.text = statusText(for: r.status)
         
         // ✅ 리뷰 작성 여부 체크 (Firestore 값 + 로컬 플래그 둘 다 반영)
@@ -331,39 +364,6 @@ final class ReservationDetailVC: UIViewController {
         default:          return raw
         }
     }
-    
-    //    // MARK: - 수수료 부과 취소
-    //    private func chargeCancellationFee(userId: String, reservation: Reservation) {
-    //        let feeRate = 0.1 // 예: 10% 수수료
-    //        let totalPrice = reservation.totalPrice
-    //        let feeAmount = Int(Double(totalPrice) * feeRate)
-    //
-    //        let message = "예약을 취소하면 \(feeAmount)원이 수수료로 부과됩니다.\n계속 진행하시겠어요?"
-    //
-    //        let alert = UIAlertController(title: "수수료 안내", message: message, preferredStyle: .alert)
-    //        alert.addAction(UIAlertAction(title: "돌아가기", style: .cancel))
-    //        alert.addAction(UIAlertAction(title: "확인", style: .destructive) { _ in
-    //            let doc = self.db.collection("reservations").document(reservation.id)
-    //            doc.updateData([
-    //                "status": "취소",
-    //                "cancellationFee": feeAmount,
-    //                "cancelledAt": Timestamp()
-    //            ]) { [weak self] err in
-    //                guard let self = self else { return }
-    //                if let err = err {
-    //                    print("예약 취소 실패:", err.localizedDescription)
-    //                    self.showAlert(title: "오류", message: "예약 취소에 실패했습니다.")
-    //                    return
-    //                }
-    //
-    //                self.showAlert(title: "취소 완료", message: "수수료 \(feeAmount)원이 부과되었습니다.") {
-    //                    NotificationCenter.default.post(name: .reservationCancelled, object: nil)
-    //                    self.navigationController?.popViewController(animated: true)
-    //                }
-    //            }
-    //        })
-    //        present(alert, animated: true)
-    //    }
     
     // MARK: - 예약 취소
     @objc private func cancelTapped() {
