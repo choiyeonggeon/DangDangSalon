@@ -8,7 +8,7 @@
 import UIKit
 import SnapKit
 import FirebaseFirestore
-import FirebaseAuth   // uid 비교용
+import FirebaseAuth
 
 final class ReviewListVC: UIViewController {
     
@@ -39,6 +39,17 @@ final class ReviewListVC: UIViewController {
         tableView.snp.makeConstraints { $0.edges.equalToSuperview() }
         
         fetchAllReviews()
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refreshAfterEdit),
+            name: .reviewAdded,
+            object: nil
+        )
+    }
+    
+    @objc private func refreshAfterEdit() {
+        fetchAllReviews()
     }
     
     // MARK: - Firestore
@@ -66,7 +77,7 @@ final class ReviewListVC: UIViewController {
         let sheet = UIAlertController(title: "리뷰 관리", message: nil, preferredStyle: .actionSheet)
         
         sheet.addAction(UIAlertAction(title: "리뷰 수정하기", style: .default) { _ in
-            self.editReview(review)
+            self.gotoEditReview(review)
         })
         sheet.addAction(UIAlertAction(title: "리뷰 삭제하기", style: .destructive) { _ in
             self.deleteReview(review)
@@ -75,49 +86,35 @@ final class ReviewListVC: UIViewController {
         
         if let pop = sheet.popoverPresentationController {
             pop.sourceView = self.view
-            pop.sourceRect = CGRect(
-                x: self.view.bounds.midX,
-                y: self.view.bounds.midY,
-                width: 0,
-                height: 0
-            )
+            pop.sourceRect = CGRect(x: self.view.bounds.midX, y: self.view.bounds.midY, width: 0, height: 0)
             pop.permittedArrowDirections = []
         }
         
         present(sheet, animated: true)
     }
     
-    // MARK: - 리뷰 수정
-    private func editReview(_ review: Review) {
+    // MARK: - 리뷰 수정 화면 이동
+    private func gotoEditReview(_ review: Review) {
         guard let shopId = shopId else { return }
         
-        let alert = UIAlertController(title: "리뷰 수정", message: nil, preferredStyle: .alert)
-        alert.addTextField { field in
-            field.text = review.content
-        }
+        let vc = ReviewWriteVC()
         
-        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
-        alert.addAction(UIAlertAction(title: "저장", style: .default, handler: { _ in
-            let newText = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            guard !newText.isEmpty else { return }
-            
-            self.db.collection("shops")
-                .document(shopId)
-                .collection("reviews")
-                .document(review.id)
-                .updateData([
-                    "content": newText,
-                    "editedAt": Timestamp()
-                ]) { error in
-                    if let error = error {
-                        print("리뷰 수정 실패:", error.localizedDescription)
-                        return
-                    }
-                    self.fetchAllReviews()
-                }
-        }))
+        vc.shopId = shopId
+        vc.isEditMode = true
         
-        present(alert, animated: true)
+        // ⭐ 리뷰 ID
+        vc.editReviewId = review.id
+        
+        // ⭐ 기존 별점
+        vc.existingRating = Int(review.rating)
+        
+        // ⭐ 기존 내용
+        vc.editOriginalContent = review.content
+        
+        // ⭐ 기존 이미지 URL들
+        vc.originalImages = review.imageURLs
+        
+        navigationController?.pushViewController(vc, animated: true)
     }
     
     // MARK: - 리뷰 삭제
@@ -156,7 +153,6 @@ final class ReviewListVC: UIViewController {
             return
         }
         
-        // 🔥 본인 리뷰 신고 방지
         if review.authorId == uid {
             showAlert(title: "신고 불가", message: "본인이 작성한 리뷰는 신고할 수 없습니다.")
             return
@@ -185,12 +181,7 @@ final class ReviewListVC: UIViewController {
         
         if let pop = sheet.popoverPresentationController {
             pop.sourceView = self.view
-            pop.sourceRect = CGRect(
-                x: self.view.bounds.midX,
-                y: self.view.bounds.midY,
-                width: 0,
-                height: 0
-            )
+            pop.sourceRect = CGRect(x: self.view.bounds.midX, y: self.view.bounds.midY, width: 0, height: 0)
             pop.permittedArrowDirections = []
         }
         
@@ -219,12 +210,10 @@ final class ReviewListVC: UIViewController {
                 self.showAlert(title: "오류", message: "신고 저장에 실패했습니다.")
                 return
             }
-            
             self.showAlert(title: "신고 완료", message: "해당 리뷰가 신고되었습니다.")
         }
     }
     
-    // MARK: - Alert Helper
     private func showAlert(title: String, message: String) {
         let ac = UIAlertController(title: title, message: message, preferredStyle: .alert)
         ac.addAction(UIAlertAction(title: "확인", style: .default))
@@ -266,15 +255,12 @@ extension ReviewListVC: ReviewCardCellDelegate {
         present(vc, animated: true)
     }
     
-    /// … 버튼 눌렀을 때 호출
     func didTapMoreButton(_ review: Review) {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         
         if review.authorId == uid {
-            // ⭐ 본인 리뷰 = 수정/삭제 메뉴
             showOwnerOptions(review: review)
         } else {
-            // ⭐ 다른 사람 리뷰 = 신고
             reportReview(review)
         }
     }

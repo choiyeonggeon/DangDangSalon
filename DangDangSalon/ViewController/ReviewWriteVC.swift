@@ -19,6 +19,7 @@ final class ReviewWriteVC: UIViewController {
     // 리뷰 수정 모드일 때 전달됨
     var isEditMode: Bool = false
     var editReviewId: String?
+    
     var originalImages: [String] = []   // 기존 이미지 URL
     var existingRating: Int = 0
     var editOriginalContent: String = ""
@@ -244,6 +245,11 @@ final class ReviewWriteVC: UIViewController {
             let reservationRef = self.db
                 .collection("users").document(path.userId)
                 .collection("reservations").document(path.reservationId)
+            
+            // 🔥 전체 reservations 컬렉션 업데이트
+            let mainReservationRef = self.db
+                .collection("reservations")
+                .document(path.reservationId)
             
             reservationRef.setData([
                 "reviewWritten": true
