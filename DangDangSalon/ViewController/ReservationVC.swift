@@ -430,7 +430,7 @@ final class ReservationVC: UIViewController {
         
         db.collection("reservations")
             .whereField("shopId", isEqualTo: shopId)
-            .whereField("time", isEqualTo: time)
+            .whereField("status", in: ["예약 요청", "확정"])   // ⬅ 여기 추가!!!
             .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: start))
             .whereField("date", isLessThan: Timestamp(date: end))
             .getDocuments { [weak self] snap, _ in
