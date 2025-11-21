@@ -15,12 +15,20 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = MainTabBarController()
-        window?.makeKeyAndVisible()
-        
         window?.overrideUserInterfaceStyle = .light
+        
+        let splashView = SplashViewVC()
+        self.window?.rootViewController = splashView
+        self.window?.makeKeyAndVisible()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            let mainVC = MainTabBarController()
+            let nav = UINavigationController(rootViewController: mainVC)
+            nav.isNavigationBarHidden = true
+            self.window?.rootViewController = nav
+        }
     }
-    
+
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         if let url = URLContexts.first?.url {
             if (AuthApi.isKakaoTalkLoginUrl(url)) {

@@ -112,7 +112,7 @@ class ShopDetailVC: UIViewController {
         btn.contentVerticalAlignment = .fill
         return btn
     }()
-
+    
     private let mapIconButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setImage(UIImage(systemName: "map.fill"), for: .normal)
@@ -225,7 +225,7 @@ class ShopDetailVC: UIViewController {
     private func setupLayout() {
         view.addSubview(scrollerView)
         view.addSubview(reserveButton)
-
+        
         scrollerView.addSubview(contentView)
         contentView.addSubview(openStatusBadge)
         contentView.addSubview(callIconButton)
@@ -274,13 +274,13 @@ class ShopDetailVC: UIViewController {
             $0.trailing.equalToSuperview().inset(20)
             $0.width.height.equalTo(28)
         }
-
+        
         callIconButton.snp.makeConstraints {
             $0.centerY.equalTo(nameLabel)
             $0.trailing.equalTo(favoriteButton.snp.leading).offset(-12)
             $0.width.height.equalTo(24)
         }
-
+        
         mapIconButton.snp.makeConstraints {
             $0.centerY.equalTo(nameLabel)
             $0.trailing.equalTo(callIconButton.snp.leading).offset(-12)
@@ -454,7 +454,7 @@ class ShopDetailVC: UIViewController {
         )!
         
         if now >= todayOpen && now <= todayClose {
-            openStatusBadge.text = "영업중"
+            openStatusBadge.text = "영업 중"
             openStatusBadge.backgroundColor = .systemGreen
         } else {
             openStatusBadge.text = "영업 종료"
@@ -752,6 +752,16 @@ final class ReviewCell: UITableViewCell {
     private let ratingLabel = UILabel()
     private let contentLabel = UILabel()
     
+    private let blindedLabel: UILabel = {
+        let lb = UILabel()
+        lb.text = "(!) 사장님의 요청에 따라 30일 블라인드 처리되었습니다."
+        lb.font = .italicSystemFont(ofSize: 13)
+        lb.textColor = .systemRed
+        lb.numberOfLines = 0
+        lb.isHidden = true
+        return lb
+    }()
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
@@ -772,6 +782,12 @@ final class ReviewCell: UITableViewCell {
         
         [topRow, contentLabel].forEach { contentView.addSubview($0) }
         
+        [blindedLabel, topRow, contentLabel].forEach { contentView.addSubview($0) }
+        
+        blindedLabel.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview().inset(8)
+        }
+        
         topRow.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview().inset(8)
         }
@@ -782,6 +798,24 @@ final class ReviewCell: UITableViewCell {
     }
     
     func configure(with review: Review) {
+        
+        if review.isBlinded,
+           let until = review.blindedUntil,
+           until > Date() {
+            
+            blindedLabel.isHidden = false
+            userLabel.isHidden = false
+            ratingLabel.isHidden = true
+            contentLabel.isHidden = true
+            return
+        }
+        
+        // 정상 리뷰
+        blindedLabel.isHidden = true
+        userLabel.isHidden = false
+        ratingLabel.isHidden = false
+        contentLabel.isHidden = false
+        
         userLabel.text = review.nickname
         ratingLabel.text = "⭐️ \(review.rating)"
         contentLabel.text = review.content

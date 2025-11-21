@@ -476,7 +476,9 @@ final class ReservationVC: UIViewController {
                         self.reservedTimes.append(time)
                         self.buildTimeButtons()
                         self.loadReservedTimes(for: selectedDate)
-                        self.showAlert(title: "예약 완료", message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))")
+                        self.showAlert(
+                            title: "예약 완료",
+                            message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))")
                         
                     }
                 }

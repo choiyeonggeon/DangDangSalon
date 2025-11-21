@@ -14,6 +14,7 @@ final class FavoritesVC: UIViewController {
     
     private let db = Firestore.firestore()
     private var favorites: [(shopId: String, shopName: String)] = []
+    private var listener: ListenerRegistration?
     
     // MARK: - UI
     private let headerView: UIView = {
@@ -124,7 +125,7 @@ final class FavoritesVC: UIViewController {
             DispatchQueue.main.async {
                 self.emptyView.isHidden = false
                 self.tableView.isHidden = true
-
+                
                 if let label = self.emptyView.subviews.first?.subviews.last as? UILabel {
                     label.text = "로그인 후 즐겨찾기를 확인할 수 있어요 💙"
                 }
@@ -132,16 +133,18 @@ final class FavoritesVC: UIViewController {
             return
         }
         
-        db.collection("users")
+        listener = db.collection("users")
             .document(userId)
             .collection("favorites")
             .order(by: "createdAt", descending: true)
-            .getDocuments { [weak self] snapshot, error in
+            .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self else { return }
+                
                 if let error = error {
-                    print("찜 목록 불러오기 실패:", error.localizedDescription)
+                    print("실시간 즐겨찾기 불러오기 실패:", error.localizedDescription)
                     return
                 }
+                
                 self.favorites = snapshot?.documents.compactMap { doc in
                     guard let name = doc["shopName"] as? String else { return nil }
                     return (doc.documentID, name)
@@ -158,6 +161,9 @@ final class FavoritesVC: UIViewController {
                     }
                 }
             }
+    }
+    deinit {
+        listener?.remove()
     }
 }
 

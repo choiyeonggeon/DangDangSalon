@@ -11,6 +11,7 @@ import FirebaseFirestore
 struct User {
     let nickname: String
     let email: String
+    let name: String?
     let phone: String?
     let createdAt: Date?
     
@@ -22,6 +23,7 @@ struct User {
         }
         self.nickname = nickname
         self.email = email
+        self.name = data["name"] as? String
         self.phone = data["phone"] as? String
         self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue()
     }

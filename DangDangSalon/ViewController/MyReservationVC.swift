@@ -14,6 +14,7 @@ final class MyReservationVC: UIViewController {
     
     private let db = Firestore.firestore()
     private var reservations: [Reservation] = []
+    private var listener: ListenerRegistration?
     
     // MARK: - UI
     private let headerView: UIView = {
@@ -109,16 +110,18 @@ final class MyReservationVC: UIViewController {
             return
         }
         
-        db.collection("reservations")
+        listener = db.collection("reservations")
             .whereField("userId", isEqualTo: userId)
             .order(by: "date", descending: true)
-            .getDocuments { [weak self] snapshot, error in
+            .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self else { return }
+                
                 if let error = error {
-                    print("예약 불러오기 실패:", error.localizedDescription)
+                    print("❌ 실시간 예약 불러오기 실패:", error.localizedDescription)
                     self.showEmptyState()
                     return
                 }
+                
                 self.reservations = snapshot?.documents.compactMap { Reservation(document: $0) } ?? []
                 
                 DispatchQueue.main.async {
@@ -132,7 +135,7 @@ final class MyReservationVC: UIViewController {
                 }
             }
     }
-
+    
     private func showEmptyState() {
         DispatchQueue.main.async {
             self.emptyView.isHidden = false
@@ -164,6 +167,10 @@ final class MyReservationVC: UIViewController {
             $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(16)
         }
         emptyView.snp.makeConstraints { $0.edges.equalToSuperview() }
+    }
+    
+    deinit {
+        listener?.remove()
     }
 }
 

@@ -1,4 +1,3 @@
-//
 //  ReviewCardCell.swift
 //  DangSalon
 //
@@ -10,11 +9,11 @@ import SnapKit
 
 final class PaddingLabel: UILabel {
     var inset = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
-
+    
     override func drawText(in rect: CGRect) {
         super.drawText(in: rect.inset(by: inset))
     }
-
+    
     override var intrinsicContentSize: CGSize {
         let size = super.intrinsicContentSize
         return CGSize(width: size.width + inset.left + inset.right,
@@ -25,15 +24,14 @@ final class PaddingLabel: UILabel {
 // MARK: - Delegate
 protocol ReviewCardCellDelegate: AnyObject {
     func didTapReviewImage(_ imageURLs: [String], selectedIndex: Int)
-    func didTapMoreButton(_ review: Review)     // ⭐ 리뷰 신고용
+    func didTapMoreButton(_ review: Review)
 }
 
 final class ReviewCardCell: UITableViewCell {
     
-    // MARK: - Properties
     weak var delegate: ReviewCardCellDelegate?
     private var currentImageURLs: [String] = []
-    private var currentReview: Review?        // ⭐ 신고 시 전달용
+    private var currentReview: Review?
     
     // MARK: - UI
     private let cardView: UIView = {
@@ -45,6 +43,17 @@ final class ReviewCardCell: UITableViewCell {
         v.layer.shadowOffset = CGSize(width: 0, height: 3)
         v.layer.shadowColor = UIColor.black.withAlphaComponent(0.05).cgColor
         return v
+    }()
+    
+    // 🔥 추가된 블라인드 라벨
+    private let blindedLabel: UILabel = {
+        let lb = UILabel()
+        lb.text = "(!) 사장님의 요청에 따라 30일 블라인드 처리되었습니다."
+        lb.font = .italicSystemFont(ofSize: 14)
+        lb.textColor = .systemRed
+        lb.numberOfLines = 0
+        lb.isHidden = true
+        return lb
     }()
     
     private let moreButton: UIButton = {
@@ -60,7 +69,6 @@ final class ReviewCardCell: UITableViewCell {
     private let timestampLabel = UILabel()
     
     private let replyTitleLabel = UILabel()
-    
     private let replyContentLabel: PaddingLabel = {
         let lbl = PaddingLabel()
         lbl.font = .systemFont(ofSize: 14)
@@ -71,7 +79,7 @@ final class ReviewCardCell: UITableViewCell {
         lbl.isHidden = true
         return lbl
     }()
-
+    
     private let photoScrollView: UIScrollView = {
         let sv = UIScrollView()
         sv.showsHorizontalScrollIndicator = false
@@ -79,14 +87,14 @@ final class ReviewCardCell: UITableViewCell {
         return sv
     }()
     
-    // MARK: - Init
+    // MARK: Init
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
     }
     required init?(coder: NSCoder) { fatalError() }
     
-    // MARK: - UI Setup
+    // MARK: UI Setup
     private func setupUI() {
         backgroundColor = .clear
         selectionStyle = .none
@@ -103,13 +111,6 @@ final class ReviewCardCell: UITableViewCell {
         replyTitleLabel.font = .boldSystemFont(ofSize: 14)
         replyTitleLabel.textColor = .systemBlue
         replyTitleLabel.isHidden = true
-        
-        replyContentLabel.font = .systemFont(ofSize: 14)
-        replyContentLabel.numberOfLines = 0
-        replyContentLabel.backgroundColor = .systemGray6
-        replyContentLabel.layer.cornerRadius = 10
-        replyContentLabel.clipsToBounds = true
-        replyContentLabel.isHidden = true
         
         contentView.addSubview(cardView)
         cardView.snp.makeConstraints {
@@ -133,8 +134,10 @@ final class ReviewCardCell: UITableViewCell {
             photoScrollView,
             timestampLabel,
             replyTitleLabel,
-            replyContentLabel
+            replyContentLabel,
+            blindedLabel        // 🔥 블라인드 라벨 추가
         ])
+        
         stack.axis = .vertical
         stack.spacing = 16
         
@@ -142,12 +145,40 @@ final class ReviewCardCell: UITableViewCell {
         stack.snp.makeConstraints { $0.edges.equalToSuperview().inset(16) }
         
         photoScrollView.snp.makeConstraints { $0.height.equalTo(90) }
-        
     }
     
     // MARK: - Configure
     func configure(with review: Review) {
         currentReview = review
+        
+        // 🔥 블라인드 여부 체크
+        let isBlinded = review.isBlinded ?? false
+        let until = review.blindedUntil
+        
+        let now = Date()
+        if isBlinded, let until = until, until > now {
+            // 👉 블라인드 상태: 문구만 표시
+            blindedLabel.isHidden = false
+            
+            nicknameLabel.isHidden = false
+            ratingLabel.isHidden = true
+            contentLabel.isHidden = true
+            photoScrollView.isHidden = true
+            timestampLabel.isHidden = true
+            replyTitleLabel.isHidden = true
+            replyContentLabel.isHidden = true
+            
+            return
+        }
+        
+        // 🔥 정상 리뷰 표시
+        blindedLabel.isHidden = true
+        
+        nicknameLabel.isHidden = false
+        ratingLabel.isHidden = false
+        contentLabel.isHidden = false
+        photoScrollView.isHidden = false
+        timestampLabel.isHidden = false
         
         nicknameLabel.text = review.nickname
         ratingLabel.text = "⭐️ \(review.rating)"
@@ -167,7 +198,6 @@ final class ReviewCardCell: UITableViewCell {
         updatePhotos(review.imageURLs)
     }
     
-    // MARK: - Photos
     private func updatePhotos(_ urls: [String]) {
         currentImageURLs = urls
         photoScrollView.subviews.forEach { $0.removeFromSuperview() }
@@ -209,19 +239,16 @@ final class ReviewCardCell: UITableViewCell {
         photoScrollView.contentSize = CGSize(width: xOffset, height: size)
     }
     
-    // MARK: - Photo Tap
     @objc private func photoTapped(_ sender: UITapGestureRecognizer) {
         guard let view = sender.view else { return }
         delegate?.didTapReviewImage(currentImageURLs, selectedIndex: view.tag)
     }
     
-    // MARK: - More Button
     @objc private func moreTapped() {
         guard let review = currentReview else { return }
         delegate?.didTapMoreButton(review)
     }
     
-    // MARK: - Time Format
     private func timeAgo(from date: Date) -> String {
         let seconds = Int(Date().timeIntervalSince(date))
         if seconds < 60 { return "방금 전" }

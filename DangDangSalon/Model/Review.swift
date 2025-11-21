@@ -18,6 +18,9 @@ struct Review {
     let reply: String?
     let imageURLs: [String]
     
+    let isBlinded: Bool
+    let blindedUntil: Date?
+    
     init?(document: DocumentSnapshot) {
         let data = document.data() ?? [:]
         guard let nickname = data["nickname"] as? String,
@@ -32,5 +35,8 @@ struct Review {
         self.timestamp = (data["timestamp"] as? Timestamp)?.dateValue()
         self.reply = data["reply"] as? String
         imageURLs = data["imageURLs"] as? [String] ?? []
+        
+        self.isBlinded = data["isBlinded"] as? Bool ?? false
+        self.blindedUntil = (data["blindedUntil"] as? Timestamp)?.dateValue()
     }
 }
