@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>CFBundleDevelopmentRegion</key>
+        <string>ko</string>
+        <key>CFBundleName</key>
+        <string>DangSalon</string>
+        <key>CFBundleDisplayName</key>
+        <string>댕살롱</string>
+        <key>CFBundleIdentifier</key>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+        <key>CFBundleVersion</key>
+        <string>1</string>
+        <key>CFBundleShortVersionString</key>
+        <string>1.0</string>
+        <key>CFBundleExecutable</key>
+        <string>$(EXECUTABLE_NAME)</string>
+        <key>CFBundlePackageType</key>
+        <string>APPL</string>
+        <key>CFBundleInfoDictionaryVersion</key>
+        <string>6.0</string>
+        
+        <!-- ✦ 런치스크린 -->
+        <key>UILaunchStoryboardName</key>
+        <string>LaunchScreen</string>
+        
+        <!-- ✦ 전체 화면 설정 -->
+        <key>UIRequiresFullScreen</key>
+        <true/>
+        
+        <!-- ✦ 지원 화면 방향 -->
+        <key>UISupportedInterfaceOrientations</key>
+        <array>
+            <string>UIInterfaceOrientationPortrait</string>
+        </array>
+        
+        <!-- ✦ Firebase -->
+        <key>FirebaseAppDelegateProxyEnabled</key>
+        <string>false</string>
+        
+        <!-- ✦ URL Schemes (Kakao, Custom, Firebase) -->
+        <key>CFBundleURLTypes</key>
+        <array>
+            <dict>
+                <key>CFBundleTypeRole</key>
+                <string>Editor</string>
+                <key>CFBundleURLName</key>
+                <string>dangdangs</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>dangdangs</string>
+                </array>
+            </dict>
+            <dict>
+                <key>CFBundleTypeRole</key>
+                <string>Editor</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>app-1-112771185295-ios-151629d6780aba5ec34efa</string>
+                </array>
+            </dict>
+        </array>
+        
+        <!-- ✦ Kakao -->
+        <key>LSApplicationQueriesSchemes</key>
+        <array>
+            <string>kakaokompassauth</string>
+            <string>kakaolink</string>
+            <string>kakaoplus</string>
+        </array>
+        
+        <!-- ✦ ATS 설정 -->
+        <key>NSAppTransportSecurity</key>
+        <dict>
+            <key>NSAllowsArbitraryLoads</key>
+            <true/>
+        </dict>
+        
+        <!-- ✦ 폰트 -->
+        <key>UIAppFonts</key>
+        <array>
+            <string>Pretendard-Black.otf</string>
+            <string>Pretendard-Bold.otf</string>
+            <string>GmarketSansBold.otf</string>
+        </array>
+        
+        <!-- ✦ SceneDelegate -->
+        <key>UIApplicationSceneManifest</key>
+        <dict>
+            <key>UIApplicationSupportsMultipleScenes</key>
+            <false/>
+            <key>UISceneConfigurations</key>
+            <dict>
+                <key>UIWindowSceneSessionRoleApplication</key>
+                <array>
+                    <dict>
+                        <key>UISceneConfigurationName</key>
+                        <string>Default Configuration</string>
+                        <key>UISceneDelegateClassName</key>
+                        <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+                    </dict>
+                </array>
+            </dict>
+        </dict>
+        
+        <!-- ✦ Background Modes -->
+        <key>UIBackgroundModes</key>
+        <array>
+            <string>remote-notification</string>
+        </array>
+        
+        <!-- ✦ 위치 권한 -->
+        <key>NSLocationWhenInUseUsageDescription</key>
+        <string>앱 사용 중 위치 정보를 사용합니다.</string>
+        <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+        <string>앱이 항상 위치 정보를 사용할 수 있도록 허용해주세요.</string>
+        
+        <!-- ✦ 사진 권한 -->
+        <key>NSPhotoLibraryUsageDescription</key>
+        <string>앱에서 사진을 선택하거나 업로드하기 위해 사진 접근이 필요합니다.</string>
+        
+    </dict>
+</plist>
