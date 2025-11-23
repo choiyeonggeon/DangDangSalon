@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4230ABB62ED23A5C00966B52 /* (null) in Sources */ = {isa = PBXBuildFile; };
 		423B5B822EB8CA7D00EB5A47 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 423B5B812EB8CA7D00EB5A47 /* FirebaseMessaging */; };
 		423B5C5F2EB9FA8000EB5A47 /* KakaoSDKAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 423B5C5E2EB9FA8000EB5A47 /* KakaoSDKAuth */; };
 		4289BD4F2EA8DB6E00F02DDC /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 4289BD4E2EA8DB6E00F02DDC /* FirebaseAuth */; };
@@ -44,9 +43,23 @@
 		42AB1E4F2EB1095800207828 /* Secret.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secret.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4296E0EB2ED348A500839715 /* Exceptions for "DangDangSalon" folder in "DangSalon" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"/Localized: InfoPlist.strings",
+				Info.plist,
+			);
+			target = 422273462E9FA7700009329B /* DangSalon */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		422273492E9FA7700009329B /* DangDangSalon */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4296E0EB2ED348A500839715 /* Exceptions for "DangDangSalon" folder in "DangSalon" target */,
+			);
 			path = DangDangSalon;
 			sourceTree = "<group>";
 		};
@@ -252,8 +265,8 @@
 			developmentRegion = ko;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				Base,
 				ko,
+				Base,
 			);
 			mainGroup = 4222733E2E9FA7700009329B;
 			minimizedProjectReferenceProxies = 1;
@@ -306,7 +319,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4230ABB62ED23A5C00966B52 /* (null) in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -343,23 +355,29 @@
 		422273712E9FA7720009329B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APPLY_RULES_IN_COPY_FILES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = DangDangSalon/DangDangSalon.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = NO;
 				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = N5PZ4NS352;
 				DONT_GENERATE_INFOPLIST_FILE = YES;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = /Users/cyg050217/Desktop/DangDangSalon/DangDangSalon/DangDangSalon/Base.lproj/Info.plist;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_EXPAND_BUILD_SETTINGS = YES;
+				INFOPLIST_FILE = /Users/cyg050217/Desktop/DangDangSalon/DangDangSalon/DangDangSalon/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "댕살롱";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "내 주변 미용샵을 보여드리기 위해 위치 정보가 필요합니다.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "내 주변 미용샵을 보여드리기 위해 위치 정보가 필요합니다.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "앱이 항상 위치 정보를 사용할 수 있도록 허용해주세요.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "앱 사용 중 위치 정보를 사용합니다.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "앱에서 사진을 선택하거나 업로드하기 위해 사진 접근이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = "";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_PREPROCESS = YES;
@@ -368,7 +386,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cyg050217.DangDangSalon;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -380,23 +398,29 @@
 		422273722E9FA7720009329B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APPLY_RULES_IN_COPY_FILES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = DangDangSalon/DangDangSalon.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = NO;
 				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = N5PZ4NS352;
 				DONT_GENERATE_INFOPLIST_FILE = YES;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = /Users/cyg050217/Desktop/DangDangSalon/DangDangSalon/DangDangSalon/Base.lproj/Info.plist;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_EXPAND_BUILD_SETTINGS = YES;
+				INFOPLIST_FILE = /Users/cyg050217/Desktop/DangDangSalon/DangDangSalon/DangDangSalon/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "댕살롱";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "내 주변 미용샵을 보여드리기 위해 위치 정보가 필요합니다.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "내 주변 미용샵을 보여드리기 위해 위치 정보가 필요합니다.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "앱이 항상 위치 정보를 사용할 수 있도록 허용해주세요.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "앱 사용 중 위치 정보를 사용합니다.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "앱에서 사진을 선택하거나 업로드하기 위해 사진 접근이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = "";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_PREPROCESS = YES;
@@ -405,7 +429,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cyg050217.DangDangSalon;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

@@ -195,7 +195,7 @@ final class ReservationVC: UIViewController {
             }
         }
     }
-
+    
     // 기본시간 fallback
     private func generateDefaultTimes() -> [String] {
         var result: [String] = []
@@ -234,10 +234,23 @@ final class ReservationVC: UIViewController {
                 }
             }
     }
-
+    
     // MARK: - UI 생성: 시간 버튼들
     private func buildTimeButtons() {
         timeStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        
+        // -----------------------
+        // 🔥 현재 날짜가 오늘일 경우 → 지난 시간 disable
+        // -----------------------
+        let calendar = Calendar.current
+        let isToday = calendar.isDateInToday(datePicker.date)
+        
+        let now = Date()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        let currentTimeString = formatter.string(from: now)
+        // -----------------------
+        
         let chunkSize = 3
         for i in stride(from: 0, to: availableTimes.count, by: chunkSize) {
             let rowTimes = Array(availableTimes[i..<min(i+chunkSize, availableTimes.count)])
@@ -245,30 +258,54 @@ final class ReservationVC: UIViewController {
             row.axis = .horizontal
             row.spacing = 8
             row.distribution = .fillEqually
+            
             for time in rowTimes {
                 let btn = UIButton(type: .system)
+                
+                // ⛔ 지난 시간 체크
+                let isPastTime: Bool = {
+                    if isToday {
+                        return time < currentTimeString
+                    }
+                    return false
+                }()
+                
                 let isReserved = reservedTimes.contains(time)
                 let isSelected = time == selectedTime
+                
                 btn.setTitle(time, for: .normal)
                 btn.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
                 btn.layer.cornerRadius = 8
                 btn.layer.borderWidth = 1
                 btn.heightAnchor.constraint(equalToConstant: 44).isActive = true
                 
-                if isReserved {
+                if isPastTime {
+                    // 지난 시간 → 선택 불가
                     btn.backgroundColor = .systemGray5
                     btn.setTitleColor(.systemGray, for: .normal)
                     btn.layer.borderColor = UIColor.systemGray4.cgColor
                     btn.isEnabled = false
+                    
+                } else if isReserved {
+                    // 이미 예약된 시간 → 선택 불가
+                    btn.backgroundColor = .systemGray5
+                    btn.setTitleColor(.systemGray, for: .normal)
+                    btn.layer.borderColor = UIColor.systemGray4.cgColor
+                    btn.isEnabled = false
+                    
                 } else if isSelected {
+                    // 선택된 시간
                     btn.backgroundColor = .systemBlue
                     btn.setTitleColor(.white, for: .normal)
                     btn.layer.borderColor = UIColor.systemBlue.cgColor
+                    
                 } else {
+                    // 기본 버튼
                     btn.backgroundColor = .clear
                     btn.setTitleColor(.label, for: .normal)
                     btn.layer.borderColor = UIColor.systemGray4.cgColor
                 }
+                
                 btn.addAction(UIAction { [weak self] _ in
                     self?.selectedTime = time
                     self?.buildTimeButtons()
@@ -484,7 +521,7 @@ final class ReservationVC: UIViewController {
                 }
             }
     }
-
+    
     @objc private func dateChanged() {
         loadReservedTimes(for: datePicker.date)
     }
