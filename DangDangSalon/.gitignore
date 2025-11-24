@@ -1,1 +1,17 @@
+# Xcode 빌드 파일
+build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+
+# Swift Package Manager
+Packages/
+Package.pins
+Package.resolved
+
+# Firebase & API 키
+Secret.xcconfig
 GoogleService-Info.plist
+
+# macOS 캐시 파일
+.DS_Store

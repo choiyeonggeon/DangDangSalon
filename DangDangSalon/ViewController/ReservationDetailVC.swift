@@ -9,9 +9,11 @@ import UIKit
 import SnapKit
 import FirebaseAuth
 import FirebaseFirestore
+import SDWebImage
 
 final class ReservationDetailVC: UIViewController {
     
+    // MARK: - 전달 데이터
     var reservation: Reservation? {
         didSet {
             if isViewLoaded {
@@ -21,17 +23,15 @@ final class ReservationDetailVC: UIViewController {
     }
     
     private let db = Firestore.firestore()
-    
-    // ✅ 로컬 플래그: 리뷰 작성 여부
     private var isReviewWritten: Bool = false
     
     // MARK: - UI
     private let scrollView = UIScrollView()
     private let contentView = UIView()
     
-    let petImageView = UIImageView()
-    let petNameLabel = UILabel()
-    let petBreedLabel = UILabel()
+    private let petImageView = UIImageView()
+    private let petNameLabel = UILabel()
+    private let petBreedLabel = UILabel()
     
     private let cardView: UIView = {
         let v = UIView()
@@ -44,7 +44,6 @@ final class ReservationDetailVC: UIViewController {
         return v
     }()
     
-    // 🔹 새로 추가: 액션(전화/지도/신고)용 카드
     private let actionsCardView: UIView = {
         let v = UIView()
         v.backgroundColor = .systemBackground
@@ -81,7 +80,7 @@ final class ReservationDetailVC: UIViewController {
     private lazy var dateRow   = makeRow(title: "예약일")
     private lazy var timeRow   = makeRow(title: "예약 시간")
     private lazy var priceRow  = makeRow(title: "결제 금액")
-    private lazy var request = makeRow(title: "요청사항")
+    private lazy var request   = makeRow(title: "요청사항")
     private lazy var statusRow = makeRow(title: "상태")
     
     private let sectionHeader: UILabel = {
@@ -91,13 +90,6 @@ final class ReservationDetailVC: UIViewController {
         label.textColor = .label
         return label
     }()
-    
-    private func makeSeparator() -> UIView {
-        let line = UIView()
-        line.backgroundColor = .systemGray5
-        line.snp.makeConstraints { $0.height.equalTo(1 / UIScreen.main.scale) }
-        return line
-    }
     
     private let cancelButton: UIButton = {
         let btn = UIButton(type: .system)
@@ -184,15 +176,14 @@ final class ReservationDetailVC: UIViewController {
         return stack
     }()
     
+    // MARK: - LifeCycle
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor.systemGroupedBackground
         title = "예약 상세"
         
-        // ✅ 최초 상태 동기화
         isReviewWritten = reservation?.reviewWritten ?? false
         
-        // ✅ 리뷰 작성 완료 시 알림 받기
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleReviewWritten),
@@ -203,18 +194,19 @@ final class ReservationDetailVC: UIViewController {
         setupPetInfoUI()
         setupUI()
         configureData()
+        setupActions()
     }
     
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
     
-    // ✅ 리뷰 작성 완료 알림 받았을 때
     @objc private func handleReviewWritten(_ notification: Notification) {
         isReviewWritten = true
-        configureData()   // UI 다시 세팅
+        configureData()
     }
     
+    // MARK: - UI Setup
     private func setupPetInfoUI() {
         petImageView.contentMode = .scaleAspectFill
         petImageView.clipsToBounds = true
@@ -233,43 +225,44 @@ final class ReservationDetailVC: UIViewController {
         
         petInfoStack.addArrangedSubview(petImageView)
         petInfoStack.addArrangedSubview(labelsStack)
-        
-        contentView.addSubview(petInfoStack)
-        
-        petImageView.snp.makeConstraints { $0.width.height.equalTo(60) }
-        
-        petInfoStack.snp.makeConstraints {
-            $0.top.equalTo(sectionHeader.snp.bottom).offset(16)
-            $0.leading.trailing.equalToSuperview().inset(20)
-        }
-        
-        // 카드 뷰 위치 아래로 밀기
-        cardView.snp.remakeConstraints {
-            $0.top.equalTo(petInfoStack.snp.bottom).offset(16)
-            $0.leading.trailing.equalToSuperview().inset(20)
-        }
     }
     
     private func setupUI() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
+        
         contentView.addSubview(sectionHeader)
+        contentView.addSubview(petInfoStack)
         contentView.addSubview(cardView)
-        contentView.addSubview(actionsCardView)   // 🔹 액션 카드 추가
+        contentView.addSubview(actionsCardView)
         view.addSubview(cancelButton)
         view.addSubview(reviewButton)
         view.addSubview(guideLabel)
         
+        // Action Stack
         actionIconStack.addArrangedSubview(callIconButton)
         actionIconStack.addArrangedSubview(mapIconButton)
         actionIconStack.addArrangedSubview(reportIconButton)
-        
-        // 🔹 스택은 actionsCardView 안으로
         actionsCardView.addSubview(actionIconStack)
         
+        // Card Stack
+        let infoStack = UIStackView(arrangedSubviews: [
+            shopRow.container,
+            menuRow.container,
+            dateRow.container,
+            timeRow.container,
+            priceRow.container,
+            request.container,
+            statusRow.container
+        ])
+        infoStack.axis = .vertical
+        infoStack.spacing = 12
+        cardView.addSubview(infoStack)
+        
+        // MARK: - SnapKit Constraints
         scrollView.snp.makeConstraints {
             $0.top.leading.trailing.equalTo(view.safeAreaLayoutGuide)
-            $0.bottom.equalTo(cancelButton.snp.top).offset(-16)
+            $0.bottom.equalTo(cancelButton.snp.top).offset(-12)
         }
         
         contentView.snp.makeConstraints {
@@ -278,86 +271,62 @@ final class ReservationDetailVC: UIViewController {
         }
         
         sectionHeader.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(32)
-            $0.leading.equalToSuperview().offset(24)
+            $0.top.equalToSuperview().offset(20)
+            $0.leading.trailing.equalToSuperview().inset(20)
         }
         
-        let stack = UIStackView(arrangedSubviews: [
-            shopRow.container,
-            makeSeparator(),
-            
-            menuRow.container,
-            makeSeparator(),
-            
-            dateRow.container,
-            makeSeparator(),
-            
-            timeRow.container,
-            makeSeparator(),
-            
-            priceRow.container,
-            makeSeparator(),
-            
-            request.container,
-            makeSeparator(),
-            
-            statusRow.container
-        ])
-        stack.axis = .vertical
-        stack.spacing = 18
-        stack.isLayoutMarginsRelativeArrangement = true
-        stack.layoutMargins = UIEdgeInsets(top: 24, left: 20, bottom: 24, right: 20)
-        
-        cardView.addSubview(stack)
-        
-        cardView.snp.makeConstraints {
+        petInfoStack.snp.makeConstraints {
             $0.top.equalTo(sectionHeader.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview().inset(20)
         }
         
-        stack.snp.makeConstraints { $0.edges.equalToSuperview() }
+        petImageView.snp.makeConstraints { $0.width.height.equalTo(60) }
         
-        // 🔹 액션 카드 레이아웃 (전화/지도/신고)
+        cardView.snp.makeConstraints {
+            $0.top.equalTo(petInfoStack.snp.bottom).offset(16)
+            $0.leading.trailing.equalToSuperview().inset(20)
+        }
+        
+        infoStack.snp.makeConstraints {
+            $0.edges.equalToSuperview().inset(16)
+        }
+        
         actionsCardView.snp.makeConstraints {
             $0.top.equalTo(cardView.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview().inset(20)
+            $0.height.equalTo(60)
+            $0.bottom.equalToSuperview().offset(-20)
         }
         
-        actionIconStack.snp.makeConstraints {
-            $0.top.bottom.equalToSuperview().inset(14)
-            $0.leading.trailing.equalToSuperview().inset(32)
-            $0.height.equalTo(40)
-        }
-        
-        // 🔹 스크롤 콘텐츠 높이 = actionsCardView 기준
-        contentView.snp.makeConstraints {
-            $0.bottom.equalTo(actionsCardView.snp.bottom).offset(40)
-        }
+        actionIconStack.snp.makeConstraints { $0.edges.equalToSuperview().inset(14) }
         
         cancelButton.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(40)
-            $0.height.equalTo(54)
+            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(12)
+            $0.height.equalTo(52)
         }
         
         reviewButton.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview().inset(20)
-            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(40)
-            $0.height.equalTo(54)
+            $0.leading.trailing.equalTo(cancelButton)
+            $0.bottom.equalTo(cancelButton.snp.top).offset(-12)
+            $0.height.equalTo(52)
         }
         
         guideLabel.snp.makeConstraints {
-            $0.top.equalTo(cancelButton.snp.bottom).offset(6)
-            $0.centerX.equalToSuperview()
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalTo(reviewButton.snp.top).offset(-6)
         }
-        
+    }
+    
+    private func setupActions() {
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         reviewButton.addTarget(self, action: #selector(writeReviewTapped), for: .touchUpInside)
-        mapIconButton.addTarget(self, action: #selector(openMap), for: .touchUpInside)
         callIconButton.addTarget(self, action: #selector(callShop), for: .touchUpInside)
+        mapIconButton.addTarget(self, action: #selector(openMap), for: .touchUpInside)
         reportIconButton.addTarget(self, action: #selector(reportTapped), for: .touchUpInside)
     }
     
+    // MARK: - Data Config
     private func configureData() {
         guard let r = reservation else { return }
         
@@ -369,7 +338,6 @@ final class ReservationDetailVC: UIViewController {
         request.valueLabel.text  = r.request
         statusRow.valueLabel.text = statusText(for: r.status)
         
-        
         if let petId = r.petId {
             loadPetInfo(petId: petId)
         } else {
@@ -378,7 +346,6 @@ final class ReservationDetailVC: UIViewController {
             petImageView.image = UIImage(systemName: "pawprint.fill")
         }
         
-        // ✅ 리뷰 작성 여부 체크 (Firestore 값 + 로컬 플래그 둘 다 반영)
         let alreadyReviewed = isReviewWritten || r.reviewWritten
         
         if alreadyReviewed {
@@ -388,22 +355,15 @@ final class ReservationDetailVC: UIViewController {
             return
         }
         
-        // 상태별 버튼 UI 조정
         switch r.status {
         case "예약 중", "예약 요청", "확정":
             cancelButton.isHidden = false
             reviewButton.isHidden = true
             guideLabel.isHidden = false
-            cancelButton.setTitle("예약 취소하기", for: .normal)
             
         case "이용 완료", "완료":
             cancelButton.isHidden = true
             reviewButton.isHidden = false
-            guideLabel.isHidden = true
-            
-        case "취소":
-            cancelButton.isHidden = true
-            reviewButton.isHidden = true
             guideLabel.isHidden = true
             
         default:
@@ -415,43 +375,81 @@ final class ReservationDetailVC: UIViewController {
     
     private func statusText(for raw: String) -> String {
         switch raw {
-        case "예약 중":   return "예약 중"
+        case "예약 중": return "예약 중"
         case "이용 완료": return "이용 완료"
-        case "취소":     return "취소됨"
-        default:          return raw
+        case "취소": return "취소됨"
+        default: return raw
         }
     }
     
-    // MARK: - 예약 취소
+    // MARK: - Pet Info
+    // MARK: - Pet Info
+    private func loadPetInfo(petId: String) {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            showDefaultPetInfo()
+            return
+        }
+        
+        let petRef = db.collection("users").document(uid)
+            .collection("pets").document(petId)
+        
+        petRef.getDocument { [weak self] snap, error in
+            guard let self = self else { return }
+            if let error = error {
+                print("Pet info load error:", error.localizedDescription)
+                self.showDefaultPetInfo()
+                return
+            }
+            
+            guard let snap = snap, snap.exists, let data = snap.data() else {
+                self.showDefaultPetInfo()
+                return
+            }
+            
+            let pet = Pet(id: snap.documentID, data: data)
+            
+            DispatchQueue.main.async {
+                self.petNameLabel.text = pet.name.isEmpty ? "이름 없음" : pet.name
+                self.petBreedLabel.text = pet.breed.isEmpty ? "품종 없음" : pet.breed
+                if let urlStr = pet.photoURL, let url = URL(string: urlStr) {
+                    self.petImageView.sd_setImage(with: url, placeholderImage: UIImage(systemName: "pawprint.fill"))
+                } else {
+                    self.petImageView.image = UIImage(systemName: "pawprint.fill")
+                }
+            }
+        }
+    }
+    
+    private func showDefaultPetInfo() {
+        DispatchQueue.main.async {
+            self.petNameLabel.text = "반려견 정보 없음"
+            self.petBreedLabel.text = ""
+            self.petImageView.image = UIImage(systemName: "pawprint.fill")
+        }
+    }
+    
+    // MARK: - Actions
     @objc private func cancelTapped() {
-        guard let userId = Auth.auth().currentUser?.uid,
-              let reservation = reservation else { return }
+        guard let userId = Auth.auth().currentUser?.uid, let reservation = reservation else { return }
         
         let now = Date()
         let reservationDate = reservation.date
-        
-        let isPast = reservationDate <= now
         let hoursUntilReservation = reservationDate.timeIntervalSince(now) / 3600.0
-        let withinTwoHours = hoursUntilReservation <= 2.0
         
-        var message: String
+        var message = ""
         var canCancel = true
         
-        if isPast {
+        if reservationDate <= now {
             message = "이미 지난 예약은 취소할 수 없습니다."
             canCancel = false
-        } else if withinTwoHours {
+        } else if hoursUntilReservation <= 2 {
             message = "예약 2시간 전 이후에는 앱에서 취소할 수 없습니다.\n매장에 직접 문의해 주세요."
             canCancel = false
         } else {
             message = "정말 예약을 취소하시겠어요?"
-            canCancel = true
         }
         
-        let alert = UIAlertController(title: "예약 취소",
-                                      message: message,
-                                      preferredStyle: .actionSheet)
-        
+        let alert = UIAlertController(title: "예약 취소", message: message, preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: "닫기", style: .cancel))
         
         if canCancel {
@@ -471,30 +469,96 @@ final class ReservationDetailVC: UIViewController {
         present(alert, animated: true)
     }
     
-    private func loadPetInfo(petId: String) {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        
-        Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("pets").document(petId)
-            .getDocument { snap, _ in
-                
-                guard let data = snap?.data() else { return }
-                let pet = Pet(id: snap!.documentID, data: data)
-                
-                self.petNameLabel.text = pet.name
-                self.petBreedLabel.text = pet.breed
-                
-                if let url = pet.photoURL {
-                    self.petImageView.sd_setImage(with: URL(string: url))
+    private func showCancelReasonAlert(userId: String, reservation: Reservation) {
+        let alert = UIAlertController(title: "취소 사유",
+                                      message: "취소하시는 이유를 입력해주세요.",
+                                      preferredStyle: .alert)
+        alert.addTextField { $0.placeholder = "예: 갑작스런 일정 변경 등" }
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        alert.addAction(UIAlertAction(title: "확인", style: .destructive) { _ in
+            let reason = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            self.cancelReservation(userId: userId, reservation: reservation, reason: reason)
+        })
+        present(alert, animated: true)
+    }
+    
+    private func cancelReservation(userId: String, reservation: Reservation, reason: String) {
+        db.collection("reservations").document(reservation.id)
+            .updateData([
+                "status": "취소",
+                "cancelReason": reason,
+                "cancelledAt": Timestamp()
+            ]) { [weak self] err in
+                guard let self = self else { return }
+                if let err = err {
+                    self.showAlert(title: "오류", message: "예약 취소에 실패했습니다.\n\(err.localizedDescription)")
+                    return
+                }
+                self.showAlert(title: "취소 완료", message: "예약이 취소되었습니다.") {
+                    NotificationCenter.default.post(name: .reservationCancelled, object: nil)
+                    self.navigationController?.popViewController(animated: true)
                 }
             }
     }
     
+    @objc private func writeReviewTapped() {
+        guard let userId = Auth.auth().currentUser?.uid,
+              let reservation = reservation else { return }
+        
+        let reservationRef = db.collection("users").document(userId)
+            .collection("reservations").document(reservation.id)
+        
+        reservationRef.getDocument { snap, error in
+            if let error = error { print("리뷰 상태 확인 실패:", error.localizedDescription); return }
+            let already = snap?.data()?["reviewWritten"] as? Bool ?? false
+            if already {
+                self.showAlert(title: "리뷰 작성 완료", message: "이미 이 예약에 대한 리뷰를 작성하셨습니다.")
+                return
+            }
+            let vc = ReviewWriteVC()
+            vc.reservation = reservation
+            vc.shopId = reservation.shopId
+            vc.reservationPath = (userId: userId, reservationId: reservation.id)
+            self.navigationController?.pushViewController(vc, animated: true)
+        }
+    }
+    
+    @objc private func callShop() {
+        guard let phone = reservation?.phone?.replacingOccurrences(of: "-", with: ""),
+              !phone.isEmpty,
+              let url = URL(string: "tel://\(phone)") else {
+            showAlert(title: "전화번호 없음", message: "해당 샵의 전화번호가 없습니다.")
+            return
+        }
+        UIApplication.shared.open(url)
+    }
+    
+    @objc private func openMap() {
+        guard let addr = reservation?.address, !addr.isEmpty else {
+            showAlert(title: "주소 없음", message: "해당 샵의 주소 정보가 없습니다.")
+            return
+        }
+        let encoded = addr.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        if let appURL = URL(string: "kakaomap://search?q=\(encoded)"),
+           UIApplication.shared.canOpenURL(appURL) { UIApplication.shared.open(appURL); return }
+        if let webURL = URL(string: "https://map.kakao.com/?q=\(encoded)") { UIApplication.shared.open(webURL) }
+    }
+    
+    @objc private func reportTapped() {
+        guard let userId = Auth.auth().currentUser?.uid, let r = reservation else { return }
+        let alert = UIAlertController(title: "예약 신고하기", message: "신고 사유를 입력해주세요.", preferredStyle: .alert)
+        alert.addTextField { $0.placeholder = "예: 매장이 임의로 예약을 취소했어요" }
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        alert.addAction(UIAlertAction(title: "신고하기", style: .destructive) { _ in
+            let reason = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if reason.isEmpty { self.showAlert(title: "입력 필요", message: "신고 사유를 입력해주세요."); return }
+            self.submitReservationReport(userId: userId, reservation: r, reason: reason)
+        })
+        present(alert, animated: true)
+    }
+    
     private func submitReservationReport(userId: String, reservation: Reservation, reason: String) {
-        
         let reportId = UUID().uuidString
-        
         let data: [String: Any] = [
             "reportId": reportId,
             "reservationId": reservation.id,
@@ -504,184 +568,23 @@ final class ReservationDetailVC: UIViewController {
             "status": "pending",
             "createdAt": Timestamp()
         ]
-        
         db.collection("reservationReports").document(reportId).setData(data) { err in
             if let err = err {
                 self.showAlert(title: "오류", message: "신고 접수에 실패했습니다.\n\(err.localizedDescription)")
                 return
             }
-            
             self.showAlert(title: "신고 완료", message: "신고가 정상적으로 접수되었습니다.")
         }
     }
     
-    @objc private func openMap() {
-        guard let r = reservation else { return }
-        
-        guard let addr = r.address, !addr.isEmpty else {
-            showAlert(title: "주소 없음", message: "해당 샵의 주소 정보가 없습니다.")
-            return
-        }
-        
-        let encoded = addr.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        
-        // 카카오맵 앱
-        if let appURL = URL(string: "kakaomap://search?q=\(encoded)"),
-           UIApplication.shared.canOpenURL(appURL) {
-            UIApplication.shared.open(appURL)
-            return
-        }
-        
-        // 카카오맵 웹
-        if let webURL = URL(string: "https://map.kakao.com/?q=\(encoded)") {
-            UIApplication.shared.open(webURL)
-        }
-    }
-    
-    @objc private func callShop() {
-        guard let r = reservation else { return }
-        
-        guard let rawPhone = r.phone else {
-            showAlert(title: "전화번호 없음", message: "해당 샵의 전화번호가 없습니다.")
-            return
-        }
-        
-        let phone = rawPhone.replacingOccurrences(of: "-", with: "")
-        
-        if phone.isEmpty {
-            showAlert(title: "전화번호 없음", message: "해당 샵의 전화번호가 없습니다.")
-            return
-        }
-        
-        if let url = URL(string: "tel://\(phone)") {
-            UIApplication.shared.open(url)
-        }
-    }
-    
-    @objc private func reportTapped() {
-        guard let userId = Auth.auth().currentUser?.uid,
-              let r = reservation else { return }
-        
-        let alert = UIAlertController(
-            title: "예약 신고하기",
-            message: "신고 사유를 입력해주세요.",
-            preferredStyle: .alert
-        )
-        
-        alert.addTextField { tf in
-            tf.placeholder = "예: 매장이 임의로 예약을 취소했어요"
-        }
-        
-        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
-        alert.addAction(UIAlertAction(title: "신고하기", style: .destructive, handler: { _ in
-            
-            let reason = alert.textFields?.first?.text?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            
-            if reason.isEmpty {
-                self.showAlert(title: "입력 필요", message: "신고 사유를 입력해주세요.")
-                return
-            }
-            
-            self.submitReservationReport(userId: userId, reservation: r, reason: reason)
-        }))
-        
-        present(alert, animated: true)
-    }
-    
-    // MARK: - 리뷰 작성
-    @objc private func writeReviewTapped() {
-        
-        guard let userId = Auth.auth().currentUser?.uid,
-              let reservation = reservation else { return }
-        
-        let reservationRef = db
-            .collection("users").document(userId)
-            .collection("reservations").document(reservation.id)
-        
-        // 🔥 Firestore에서 reviewWritten 확인
-        reservationRef.getDocument { snap, error in
-            if let error = error {
-                print("리뷰 상태 확인 실패:", error.localizedDescription)
-                return
-            }
-            
-            let already = snap?.data()?["reviewWritten"] as? Bool ?? false
-            
-            if already {
-                // 🔥 이미 작성한 경우 UI 차단
-                self.showAlert(
-                    title: "리뷰 작성 완료",
-                    message: "이미 이 예약에 대한 리뷰를 작성하셨습니다."
-                )
-                return
-            }
-            
-            // 🔥 리뷰 작성 가능 → 화면 이동
-            let vc = ReviewWriteVC()
-            vc.reservation = reservation
-            vc.shopId = reservation.shopId
-            vc.reservationPath = (userId: userId, reservationId: reservation.id)
-            
-            self.navigationController?.pushViewController(vc, animated: true)
-        }
-    }
-    
-    private func cancelReservation(userId: String, reservation: Reservation, reason: String) {
-        let doc = db.collection("reservations").document(reservation.id)
-        
-        doc.updateData([
-            "status": "취소",
-            "cancelReason": reason,
-            "cancelledAt": Timestamp()
-        ]) { [weak self] err in
-            guard let self = self else { return }
-            if let err = err {
-                print("예약 취소 실패:", err.localizedDescription)
-                self.showAlert(title: "오류", message: "예약 취소에 실패했습니다.")
-                return
-            }
-            
-            self.showAlert(title: "취소 완료", message: "예약이 취소되었습니다.") {
-                NotificationCenter.default.post(name: .reservationCancelled, object: nil)
-                self.navigationController?.popViewController(animated: true)
-            }
-        }
-    }
-    
-    private func showCancelReasonAlert(userId: String, reservation: Reservation) {
-        let alert = UIAlertController(
-            title: "취소 사유",
-            message: "취소하시는 이유를 입력해주세요.",
-            preferredStyle: .alert
-        )
-        
-        alert.addTextField { tf in
-            tf.placeholder = "예: 갑작스런 일정 변경 등"
-        }
-        
-        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
-        alert.addAction(UIAlertAction(title: "확인", style: .destructive, handler: { _ in
-            let reason = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            self.cancelReservation(userId: userId, reservation: reservation, reason: reason)
-        }))
-        
-        present(alert, animated: true)
-    }
-    
     private func showAlert(title: String, message: String, completion: (() -> Void)? = nil) {
-        let alert = UIAlertController(
-            title: title,
-            message: message,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "확인", style: .default) { _ in
-            completion?()
-        })
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "확인", style: .default) { _ in completion?() })
         present(alert, animated: true)
     }
 }
 
 extension Notification.Name {
     static let reservationCancelled = Notification.Name("reservationCancelled")
+    //    static let reviewWrittenForReservation = Notification.Name("reviewWrittenForReservation")
 }

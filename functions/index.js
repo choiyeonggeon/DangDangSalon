@@ -89,7 +89,7 @@ exports.sendReservationStatusNotification = onDocumentUpdated(
         body = "사장님이 예약을 확정했어요.";
         break;
       case "완료":
-        title = "예약이 완료되었습니다 🐾";
+        title = "이용이 완료되었습니다 🐾";
         body = "댕댕이가 예쁘게 변신했어요!";
         break;
       case "취소":

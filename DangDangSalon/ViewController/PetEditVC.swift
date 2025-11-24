@@ -60,18 +60,36 @@ final class PetEditVC: UIViewController, UIImagePickerControllerDelegate, UINavi
         scrollView.addSubview(contentView)
         
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
-        contentView.snp.makeConstraints { $0.edges.width.equalToSuperview() }
+        contentView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+            $0.width.equalToSuperview()
+        }
         
+        // 이미지뷰
         petImageView.backgroundColor = .systemGray6
         petImageView.layer.cornerRadius = 16
         petImageView.clipsToBounds = true
         petImageView.isUserInteractionEnabled = true
         contentView.addSubview(petImageView)
         
+        // TextField 기본 스타일
+        [nameField, breedField, ageField, weightField].forEach {
+            $0.borderStyle = .roundedRect
+            $0.backgroundColor = .systemGray6
+            $0.font = .systemFont(ofSize: 16)
+        }
+        
+        // TextView 스타일
+        memoTextView.layer.borderColor = UIColor.systemGray4.cgColor
+        memoTextView.layer.borderWidth = 1
+        memoTextView.layer.cornerRadius = 8
+        memoTextView.font = .systemFont(ofSize: 16)
+        
         [nameField, breedField, ageField, weightField, memoTextView, saveButton, deleteButton].forEach {
             contentView.addSubview($0)
         }
         
+        // MARK: - Constraints
         petImageView.snp.makeConstraints {
             $0.top.equalToSuperview().offset(20)
             $0.centerX.equalToSuperview()
@@ -118,9 +136,10 @@ final class PetEditVC: UIViewController, UIImagePickerControllerDelegate, UINavi
             $0.top.equalTo(saveButton.snp.bottom).offset(12)
             $0.left.right.equalTo(nameField)
             $0.height.equalTo(55)
-            $0.bottom.equalToSuperview().offset(-40)
+            $0.bottom.equalToSuperview().offset(-40) // contentView 높이를 결정
         }
         
+        // 버튼 스타일
         saveButton.setTitle("저장하기", for: .normal)
         saveButton.backgroundColor = .systemBlue
         saveButton.layer.cornerRadius = 12
@@ -132,13 +151,23 @@ final class PetEditVC: UIViewController, UIImagePickerControllerDelegate, UINavi
         deleteButton.layer.cornerRadius = 12
         deleteButton.setTitleColor(.white, for: .normal)
         deleteButton.addTarget(self, action: #selector(deletePet), for: .touchUpInside)
+        
+        // 키보드 올라올 때 스크롤뷰 조정
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(keyboardWillShow),
+                                               name: UIResponder.keyboardWillShowNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(keyboardWillHide),
+                                               name: UIResponder.keyboardWillHideNotification,
+                                               object: nil)
     }
     
     private func loadPetInfo() {
         nameField.text = pet.name
         breedField.text = pet.breed
-        ageField.text = "\(pet.age)"
-        weightField.text = "\(pet.weight)"
+        ageField.text = pet.age
+        weightField.text = pet.weight
         memoTextView.text = pet.memo
         
         if let url = URL(string: pet.photoURL ?? "") {
@@ -170,6 +199,17 @@ final class PetEditVC: UIViewController, UIImagePickerControllerDelegate, UINavi
         }
     }
     
+    @objc private func keyboardWillShow(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        
+        scrollView.contentInset.bottom = keyboardFrame.height + 20
+    }
+    
+    @objc private func keyboardWillHide(_ notification: Notification) {
+        scrollView.contentInset.bottom = 0
+    }
+    
     // MARK: - Update
     @objc private func updatePet() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -177,8 +217,8 @@ final class PetEditVC: UIViewController, UIImagePickerControllerDelegate, UINavi
         var data: [String: Any] = [
             "name": nameField.text ?? "",
             "breed": breedField.text ?? "",
-            "age": Int(ageField.text ?? "") ?? 0,
-            "weight": Int(weightField.text ?? "") ?? 0,
+            "age": ageField.text ?? "",
+            "weight": weightField.text ?? "",
             "memo": memoTextView.text ?? ""
         ]
         

@@ -91,8 +91,13 @@ extension PetListVC: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let pet = pets[indexPath.row]
+        
+        // 선택 콜백이 있으면 예약 등에서 사용하는 경우
         onPetSelected?(pet)
-        navigationController?.popViewController(animated: true)
+        
+        // PetEditVC로 이동
+        let editVC = PetEditVC(pet: pet)
+        navigationController?.pushViewController(editVC, animated: true)
     }
     
     // 스와이프 삭제
@@ -134,11 +139,12 @@ final class PetCell: UITableViewCell {
         contentView.addSubview(breedLabel)
         
         photoView.snp.makeConstraints {
-            $0.left.equalToSuperview().offset(20)
+            $0.left.equalToSuperview().offset(15)
             $0.centerY.equalToSuperview()
-            $0.width.height.equalTo(60)
+            $0.width.height.equalTo(40)
         }
-        
+        photoView.layer.cornerRadius = 20 // width/height 절반
+
         nameLabel.snp.makeConstraints {
             $0.left.equalTo(photoView.snp.right).offset(15)
             $0.top.equalToSuperview().offset(15)
@@ -146,7 +152,7 @@ final class PetCell: UITableViewCell {
         
         breedLabel.snp.makeConstraints {
             $0.left.equalTo(nameLabel)
-            $0.top.equalTo(nameLabel.snp.bottom).offset(4)
+            $0.top.equalTo(nameLabel.snp.bottom).offset(2)
         }
     }
     

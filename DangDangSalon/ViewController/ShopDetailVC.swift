@@ -755,8 +755,8 @@ final class ReviewCell: UITableViewCell {
     private let blindedLabel: UILabel = {
         let lb = UILabel()
         lb.text = "(!) 사장님의 요청에 따라 30일 블라인드 처리되었습니다."
-        lb.font = .italicSystemFont(ofSize: 13)
-        lb.textColor = .systemRed
+        lb.font = .systemFont(ofSize: 13)
+        lb.textColor = .systemGray
         lb.numberOfLines = 0
         lb.isHidden = true
         return lb

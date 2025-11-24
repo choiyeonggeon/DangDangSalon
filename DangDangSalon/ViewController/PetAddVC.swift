@@ -164,8 +164,8 @@ final class PetAddVC: UIViewController, UIImagePickerControllerDelegate, UINavig
         var data: [String: Any] = [
             "name": name,
             "breed": breedField.text ?? "",
-            "age": Int(ageField.text ?? "") ?? 0,
-            "weight": Int(weightField.text ?? "") ?? 0,
+            "age": ageField.text ?? "",
+            "weight": weightField.text ?? "",
             "memo": memoTextView.text ?? "",
             "createdAt": Timestamp()
         ]
