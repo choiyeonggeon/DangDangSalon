@@ -28,6 +28,7 @@ struct Reservation {
     let longitude: Double?
     let phone: String?
     
+    let petId: String?
     var request: String?
 
     // MARK: - Firestore 문서 → 모델 변환
@@ -54,6 +55,7 @@ struct Reservation {
         self.address = data["address"] as? String
         self.phone = data["phone"] as? String
         self.request = data["request"] as? String
+        self.petId = data["petId"] as? String
     }
 
     // MARK: - UI용 포맷터

@@ -32,6 +32,9 @@ final class ReservationVC: UIViewController {
         didSet { updateTotalPrice() }
     }
     
+    private var pets: [Pet] = []
+    private var selectedPet: Pet?
+    
     // MARK: - UI
     private let titleLabel: UILabel = {
         let label = UILabel()
@@ -39,6 +42,17 @@ final class ReservationVC: UIViewController {
         label.font = .boldSystemFont(ofSize: 22)
         label.textAlignment = .center
         return label
+    }()
+    
+    private let petSelectButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitle("반려견 선택", for: .normal)
+        btn.setTitleColor(.darkGray, for: .normal)
+        btn.layer.borderWidth = 1
+        btn.layer.borderColor = UIColor.systemGray4.cgColor
+        btn.layer.cornerRadius = 8
+        btn.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        return btn
     }()
     
     private let nameField: UITextField = {
@@ -143,6 +157,7 @@ final class ReservationVC: UIViewController {
         requestField.delegate = self
         confirmButton.addTarget(self, action: #selector(confirmTapped), for: .touchUpInside)
         datePicker.addTarget(self, action: #selector(dateChanged), for: .valueChanged)
+        petSelectButton.addTarget(self, action: #selector(showPetSelector), for: .touchUpInside)
         
         // 키보드 내리기 탭 제스처
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
@@ -151,6 +166,7 @@ final class ReservationVC: UIViewController {
         
         // 초기 데이터 불러오기
         fetchMenus()
+        fetchPets()
         fetchAvailableTimes()
         loadReservedTimes(for: datePicker.date)
     }
@@ -204,6 +220,26 @@ final class ReservationVC: UIViewController {
             result.append(String(format: "%02d:30", h))
         }
         return result
+    }
+    
+    private func fetchPets() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        db.collection("users")
+            .document(uid)
+            .collection("pets")
+            .getDocuments { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("❌ 반려견 불러오기 실패:", error.localizedDescription)
+                    return
+                }
+                
+                self.pets = snapshot?.documents.map {
+                    Pet(id: $0.documentID, data: $0.data())
+                } ?? []
+            }
     }
     
     // MARK: - Firestore: 날짜별 이미 예약된 슬롯
@@ -376,6 +412,7 @@ final class ReservationVC: UIViewController {
         // contentView에 넣을 순서대로 추가
         [
             titleLabel,
+            petSelectButton,
             nameField,
             phoneField,
             datePicker,
@@ -392,45 +429,61 @@ final class ReservationVC: UIViewController {
             $0.top.equalTo(contentView).offset(16)
             $0.centerX.equalToSuperview()
         }
-        nameField.snp.makeConstraints {
+        
+        petSelectButton.snp.makeConstraints {      // ← 추가됨
             $0.top.equalTo(titleLabel.snp.bottom).offset(24)
             $0.leading.trailing.equalToSuperview().inset(24)
             $0.height.equalTo(44)
         }
+        
+        nameField.snp.makeConstraints {
+            $0.top.equalTo(petSelectButton.snp.bottom).offset(12)
+            $0.leading.trailing.equalToSuperview().inset(24)
+            $0.height.equalTo(44)
+        }
+        
         phoneField.snp.makeConstraints {
             $0.top.equalTo(nameField.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview().inset(24)
             $0.height.equalTo(44)
         }
+        
         datePicker.snp.makeConstraints {
             $0.top.equalTo(phoneField.snp.bottom).offset(20)
             $0.leading.trailing.equalToSuperview().inset(24)
         }
+        
         timeSectionLabel.snp.makeConstraints {
             $0.top.equalTo(datePicker.snp.bottom).offset(24)
             $0.leading.trailing.equalToSuperview().inset(24)
         }
+        
         timeStackView.snp.makeConstraints {
             $0.top.equalTo(timeSectionLabel.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview().inset(24)
         }
+        
         menuSectionLabel.snp.makeConstraints {
             $0.top.equalTo(timeStackView.snp.bottom).offset(24)
             $0.leading.trailing.equalToSuperview().inset(24)
         }
+        
         menuStackView.snp.makeConstraints {
             $0.top.equalTo(menuSectionLabel.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview().inset(24)
         }
+        
         totalPriceLabel.snp.makeConstraints {
             $0.top.equalTo(menuStackView.snp.bottom).offset(12)
             $0.trailing.equalToSuperview().inset(24)
         }
+        
         requestField.snp.makeConstraints {
             $0.top.equalTo(totalPriceLabel.snp.bottom).offset(24)
             $0.leading.trailing.equalToSuperview().inset(24)
             $0.height.equalTo(60)
         }
+        
         confirmButton.snp.makeConstraints {
             $0.top.equalTo(requestField.snp.bottom).offset(30)
             $0.leading.trailing.equalToSuperview().inset(24)
@@ -458,6 +511,12 @@ final class ReservationVC: UIViewController {
             return
         }
         
+        // 🔥 반려견 선택 여부 확인
+        guard let pet = selectedPet else {
+            showAlert(title: "반려견 선택", message: "반려견을 선택해주세요.")
+            return
+        }
+        
         let selectedDate = datePicker.date
         let requestText = (requestField.textColor == .systemGray3) ? "" : requestField.text
         let menuNames = selectedMenus.map { $0.name }
@@ -468,7 +527,7 @@ final class ReservationVC: UIViewController {
         
         db.collection("reservations")
             .whereField("shopId", isEqualTo: shopId)
-            .whereField("status", in: ["예약 요청", "확정"])   // ⬅ 여기 추가!!!
+            .whereField("status", in: ["예약 요청", "확정"])
             .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: start))
             .whereField("date", isLessThan: Timestamp(date: end))
             .getDocuments { [weak self] snap, _ in
@@ -481,6 +540,8 @@ final class ReservationVC: UIViewController {
                 self.db.collection("shops").document(shopId).getDocument { shopSnap, _ in
                     let ownerId = shopSnap?.data()?["ownerId"] as? String ?? ""
                     let reservationId = UUID().uuidString
+                    
+                    // 🔥 Firestore에 반려견 정보 추가
                     let data: [String: Any] = [
                         "id": reservationId,
                         "userId": userId,
@@ -501,7 +562,15 @@ final class ReservationVC: UIViewController {
                         "address": self.shopAddress ?? "",
                         "shopPhone": self.shopPhone ?? "",
                         "shopLat": self.shopLat ?? 0,
-                        "shopLng": self.shopLng ?? 0
+                        "shopLng": self.shopLng ?? 0,
+                        
+                        // ⬅⬅⬅✨ 여기 추가됨
+                        "petId": pet.id,
+                        "petName": pet.name,
+                        "petBreed": pet.breed,
+                        "petWeight": pet.weight,
+                        "petAge": pet.age,
+                        "petPhotoURL": pet.photoURL ?? ""
                     ]
                     
                     self.db.collection("reservations").document(reservationId).setData(data) { err in
@@ -513,13 +582,39 @@ final class ReservationVC: UIViewController {
                         self.reservedTimes.append(time)
                         self.buildTimeButtons()
                         self.loadReservedTimes(for: selectedDate)
+                        
                         self.showAlert(
                             title: "예약 완료",
-                            message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))")
-                        
+                            message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))\n반려견: \(pet.name)"
+                        )
                     }
                 }
             }
+    }
+    
+    @objc private func showPetSelector() {
+        let alert = UIAlertController(title: "반려견 선택", message: nil, preferredStyle: .actionSheet)
+        
+        pets.forEach { pet in
+            alert.addAction(UIAlertAction(title: pet.name, style: .default, handler: { _ in
+                self.selectedPet = pet
+                self.petSelectButton.setTitle("선택됨: \(pet.name)", for: .normal)
+                self.petSelectButton.setTitleColor(.black, for: .normal)
+            }))
+        }
+        
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        
+        // iPad 팝오버 방지
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = petSelectButton
+            popover.sourceRect = CGRect(x: petSelectButton.bounds.midX,
+                                        y: petSelectButton.bounds.midY,
+                                        width: 0, height: 0)
+            popover.permittedArrowDirections = []
+        }
+        
+        present(alert, animated: true)
     }
     
     @objc private func dateChanged() {

@@ -106,6 +106,7 @@ final class MoreVC: UIViewController {
             menuItems = [
                 "로그아웃",
                 "내 정보",
+                "반려견 등록",
                 "결제 내역",
                 "공지사항",
                 "고객센터",
@@ -196,6 +197,9 @@ extension MoreVC: UITableViewDelegate, UITableViewDataSource {
             
         case "내 정보":
             navigationController?.pushViewController(MyInfoVC(), animated: true)
+            
+        case "반려견 등록":
+            navigationController?.pushViewController(PetListVC(), animated: true)
             
         case "결제 내역":
             navigationController?.pushViewController(PaymentHistoryVC(), animated: true)

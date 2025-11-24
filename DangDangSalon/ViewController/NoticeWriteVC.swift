@@ -53,6 +53,10 @@ final class NoticeWriteVC: UIViewController {
         setupUI()
         setupAction()
         contentTextView.delegate = self
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tapGesture.cancelsTouchesInView = false
+        view.addGestureRecognizer(tapGesture)
     }
     
     private func setupUI() {
@@ -126,6 +130,10 @@ final class NoticeWriteVC: UIViewController {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "확인", style: .default) { _ in completion?() })
         present(alert, animated: true)
+    }
+    
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
     }
 }
 

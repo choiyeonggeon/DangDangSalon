@@ -1,71 +1,58 @@
 //
-//  PetAddVC.swift
+//  PetEditVC.swift
 //  DangSalon
 //
-//  Created by 최영건 on 11/23/25.
+//  Created by 최영건 on 11/24/25.
 //
 
 import UIKit
 import SnapKit
 import FirebaseAuth
-import FirebaseStorage
 import FirebaseFirestore
+import FirebaseStorage
 
-final class PetAddVC: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+final class PetEditVC: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
+    private let pet: Pet
     private let db = Firestore.firestore()
     private let storage = Storage.storage()
     
-    // MARK: - UI
     private let scrollView = UIScrollView()
     private let contentView = UIView()
     
-    private let petImageView: UIImageView = {
-        let iv = UIImageView()
-        iv.backgroundColor = .systemGray6
-        iv.layer.cornerRadius = 16
-        iv.clipsToBounds = true
-        iv.contentMode = .scaleAspectFill
-        iv.isUserInteractionEnabled = true
-        return iv
-    }()
-    
+    private let petImageView = UIImageView()
     private let nameField = UITextField()
     private let breedField = UITextField()
     private let ageField = UITextField()
     private let weightField = UITextField()
     private let memoTextView = UITextView()
     
-    private let saveButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setTitle("등록하기", for: .normal)
-        btn.backgroundColor = .systemBlue
-        btn.setTitleColor(.white, for: .normal)
-        btn.layer.cornerRadius = 12
-        btn.titleLabel?.font = .boldSystemFont(ofSize: 18)
-        return btn
-    }()
+    private let saveButton = UIButton(type: .system)
+    private let deleteButton = UIButton(type: .system)
     
     private var selectedImage: UIImage?
     
+    init(pet: Pet) {
+        self.pet = pet
+        super.init(nibName: nil, bundle: nil)
+    }
+    required init?(coder: NSCoder) { fatalError() }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        title = "반려견 정보 수정"
         view.backgroundColor = .systemBackground
         
-        title = "반려견 등록"
-        
         setupUI()
-        setupGesture()
-        saveButton.addTarget(self, action: #selector(savePet), for: .touchUpInside)
+        loadPetInfo()
+        
+        let tap = UITapGestureRecognizer(target: self, action: #selector(selectImage))
+        petImageView.addGestureRecognizer(tap)
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tapGesture.cancelsTouchesInView = false
         view.addGestureRecognizer(tapGesture)
-    }
-    
-    private func setupGesture() {
-        let tap = UITapGestureRecognizer(target: self, action: #selector(selectImage))
-        petImageView.addGestureRecognizer(tap)
     }
     
     private func setupUI() {
@@ -75,8 +62,15 @@ final class PetAddVC: UIViewController, UIImagePickerControllerDelegate, UINavig
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
         contentView.snp.makeConstraints { $0.edges.width.equalToSuperview() }
         
-        [petImageView, nameField, breedField, ageField,
-         weightField, memoTextView, saveButton].forEach { contentView.addSubview($0) }
+        petImageView.backgroundColor = .systemGray6
+        petImageView.layer.cornerRadius = 16
+        petImageView.clipsToBounds = true
+        petImageView.isUserInteractionEnabled = true
+        contentView.addSubview(petImageView)
+        
+        [nameField, breedField, ageField, weightField, memoTextView, saveButton, deleteButton].forEach {
+            contentView.addSubview($0)
+        }
         
         petImageView.snp.makeConstraints {
             $0.top.equalToSuperview().offset(20)
@@ -118,27 +112,47 @@ final class PetAddVC: UIViewController, UIImagePickerControllerDelegate, UINavig
             $0.top.equalTo(memoTextView.snp.bottom).offset(20)
             $0.left.right.equalTo(nameField)
             $0.height.equalTo(55)
-            $0.bottom.equalToSuperview().offset(-10)
         }
         
-        setupFields()
-    }
-    
-    private func setupFields() {
-        [nameField, breedField, ageField, weightField].forEach {
-            $0.borderStyle = .roundedRect
+        deleteButton.snp.makeConstraints {
+            $0.top.equalTo(saveButton.snp.bottom).offset(12)
+            $0.left.right.equalTo(nameField)
+            $0.height.equalTo(55)
+            $0.bottom.equalToSuperview().offset(-40)
         }
         
-        nameField.placeholder = "반려견 이름"
-        breedField.placeholder = "견종"
-        ageField.placeholder = "나이"
-        weightField.placeholder = "몸무게 (kg)"
+        saveButton.setTitle("저장하기", for: .normal)
+        saveButton.backgroundColor = .systemBlue
+        saveButton.layer.cornerRadius = 12
+        saveButton.setTitleColor(.white, for: .normal)
+        saveButton.addTarget(self, action: #selector(updatePet), for: .touchUpInside)
         
-        memoTextView.layer.borderWidth = 1
-        memoTextView.layer.borderColor = UIColor.systemGray4.cgColor
-        memoTextView.layer.cornerRadius = 10
+        deleteButton.setTitle("삭제하기", for: .normal)
+        deleteButton.backgroundColor = .systemRed
+        deleteButton.layer.cornerRadius = 12
+        deleteButton.setTitleColor(.white, for: .normal)
+        deleteButton.addTarget(self, action: #selector(deletePet), for: .touchUpInside)
     }
     
+    private func loadPetInfo() {
+        nameField.text = pet.name
+        breedField.text = pet.breed
+        ageField.text = "\(pet.age)"
+        weightField.text = "\(pet.weight)"
+        memoTextView.text = pet.memo
+        
+        if let url = URL(string: pet.photoURL ?? "") {
+            URLSession.shared.dataTask(with: url) { data, _, _ in
+                if let data = data {
+                    DispatchQueue.main.async {
+                        self.petImageView.image = UIImage(data: data)
+                    }
+                }
+            }.resume()
+        }
+    }
+    
+    // MARK: - Select image
     @objc private func selectImage() {
         let picker = UIImagePickerController()
         picker.delegate = self
@@ -156,54 +170,57 @@ final class PetAddVC: UIViewController, UIImagePickerControllerDelegate, UINavig
         }
     }
     
-    // MARK: - Save
-    @objc private func savePet() {
+    // MARK: - Update
+    @objc private func updatePet() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
-        guard let name = nameField.text, !name.isEmpty else { return }
         
         var data: [String: Any] = [
-            "name": name,
+            "name": nameField.text ?? "",
             "breed": breedField.text ?? "",
             "age": Int(ageField.text ?? "") ?? 0,
             "weight": Int(weightField.text ?? "") ?? 0,
-            "memo": memoTextView.text ?? "",
-            "createdAt": Timestamp()
+            "memo": memoTextView.text ?? ""
         ]
         
-        // 사진 없을 때 바로 저장
+        let ref = db.collection("users").document(uid)
+            .collection("pets").document(pet.id)
+        
         if selectedImage == nil {
-            saveToFirestore(uid: uid, data: data)
+            ref.updateData(data)
+            navigationController?.popViewController(animated: true)
             return
         }
         
-        // Storage 업로드
+        // Storage 업로드 후 저장
         uploadImage(uid: uid) { url in
             data["photoURL"] = url
-            self.saveToFirestore(uid: uid, data: data)
+            ref.updateData(data)
+            self.navigationController?.popViewController(animated: true)
         }
     }
     
     private func uploadImage(uid: String, completion: @escaping (String) -> Void) {
-        guard let imageData = selectedImage?.jpegData(compressionQuality: 0.8) else { return }
+        guard let imgData = selectedImage?.jpegData(compressionQuality: 0.8) else { return }
         
-        let ref = storage.reference()
-            .child("pets/\(uid)/\(UUID().uuidString).jpg")
+        let ref = storage.reference().child("pets/\(uid)/\(UUID().uuidString).jpg")
         
-        ref.putData(imageData) { _, _ in
+        ref.putData(imgData) { _, _ in
             ref.downloadURL { url, _ in
                 completion(url?.absoluteString ?? "")
             }
         }
     }
     
-    private func saveToFirestore(uid: String, data: [String: Any]) {
-        db.collection("users").document(uid)
-            .collection("pets")
-            .addDocument(data: data) { err in
-                if err == nil {
-                    self.navigationController?.popViewController(animated: true)
-                }
-            }
+    // MARK: - Delete
+    @objc private func deletePet() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        let ref = db.collection("users").document(uid)
+            .collection("pets").document(pet.id)
+        
+        ref.delete { _ in
+            self.navigationController?.popViewController(animated: true)
+        }
     }
     
     @objc private func dismissKeyboard() {

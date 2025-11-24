@@ -29,6 +29,10 @@ final class ReservationDetailVC: UIViewController {
     private let scrollView = UIScrollView()
     private let contentView = UIView()
     
+    let petImageView = UIImageView()
+    let petNameLabel = UILabel()
+    let petBreedLabel = UILabel()
+    
     private let cardView: UIView = {
         let v = UIView()
         v.backgroundColor = .systemBackground
@@ -172,6 +176,14 @@ final class ReservationDetailVC: UIViewController {
         return stack
     }()
     
+    private let petInfoStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 12
+        stack.alignment = .center
+        return stack
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor.systemGroupedBackground
@@ -188,6 +200,7 @@ final class ReservationDetailVC: UIViewController {
             object: nil
         )
         
+        setupPetInfoUI()
         setupUI()
         configureData()
     }
@@ -200,6 +213,41 @@ final class ReservationDetailVC: UIViewController {
     @objc private func handleReviewWritten(_ notification: Notification) {
         isReviewWritten = true
         configureData()   // UI 다시 세팅
+    }
+    
+    private func setupPetInfoUI() {
+        petImageView.contentMode = .scaleAspectFill
+        petImageView.clipsToBounds = true
+        petImageView.layer.cornerRadius = 30
+        petImageView.backgroundColor = .systemGray5
+        
+        let labelsStack = UIStackView(arrangedSubviews: [petNameLabel, petBreedLabel])
+        labelsStack.axis = .vertical
+        labelsStack.spacing = 4
+        
+        petNameLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+        petNameLabel.textColor = .label
+        
+        petBreedLabel.font = .systemFont(ofSize: 14, weight: .regular)
+        petBreedLabel.textColor = .secondaryLabel
+        
+        petInfoStack.addArrangedSubview(petImageView)
+        petInfoStack.addArrangedSubview(labelsStack)
+        
+        contentView.addSubview(petInfoStack)
+        
+        petImageView.snp.makeConstraints { $0.width.height.equalTo(60) }
+        
+        petInfoStack.snp.makeConstraints {
+            $0.top.equalTo(sectionHeader.snp.bottom).offset(16)
+            $0.leading.trailing.equalToSuperview().inset(20)
+        }
+        
+        // 카드 뷰 위치 아래로 밀기
+        cardView.snp.remakeConstraints {
+            $0.top.equalTo(petInfoStack.snp.bottom).offset(16)
+            $0.leading.trailing.equalToSuperview().inset(20)
+        }
     }
     
     private func setupUI() {
@@ -321,6 +369,15 @@ final class ReservationDetailVC: UIViewController {
         request.valueLabel.text  = r.request
         statusRow.valueLabel.text = statusText(for: r.status)
         
+        
+        if let petId = r.petId {
+            loadPetInfo(petId: petId)
+        } else {
+            petNameLabel.text = "반려견 정보 없음"
+            petBreedLabel.text = ""
+            petImageView.image = UIImage(systemName: "pawprint.fill")
+        }
+        
         // ✅ 리뷰 작성 여부 체크 (Firestore 값 + 로컬 플래그 둘 다 반영)
         let alreadyReviewed = isReviewWritten || r.reviewWritten
         
@@ -412,6 +469,26 @@ final class ReservationDetailVC: UIViewController {
         }
         
         present(alert, animated: true)
+    }
+    
+    private func loadPetInfo(petId: String) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("pets").document(petId)
+            .getDocument { snap, _ in
+                
+                guard let data = snap?.data() else { return }
+                let pet = Pet(id: snap!.documentID, data: data)
+                
+                self.petNameLabel.text = pet.name
+                self.petBreedLabel.text = pet.breed
+                
+                if let url = pet.photoURL {
+                    self.petImageView.sd_setImage(with: URL(string: url))
+                }
+            }
     }
     
     private func submitReservationReport(userId: String, reservation: Reservation, reason: String) {
