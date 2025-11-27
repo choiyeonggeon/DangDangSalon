@@ -24,6 +24,10 @@ final class ReservationVC: UIViewController {
     // 파이어스토어에서 받아오는 데이터
     private var availableTimes: [String] = []      // 이 샵이 원래 받는 시간들
     private var reservedTimes: [String] = []       // 이미 예약된 슬롯 (해당 날짜 기준)
+    
+    private var closedWeekdays: [String] = []
+    private var closedDates: [String] = []
+    
     var menus: [(name: String, price: Int)] = []
     
     // 현재 선택 상태
@@ -165,6 +169,7 @@ final class ReservationVC: UIViewController {
         view.addGestureRecognizer(tapGesture)
         
         // 초기 데이터 불러오기
+        fetchClosedDays()   // 🔥 휴무 정보 불러오기
         fetchMenus()
         fetchPets()
         fetchAvailableTimes()
@@ -185,6 +190,18 @@ final class ReservationVC: UIViewController {
                 if let first = self.menus.first { self.selectedMenus = [first] }
                 DispatchQueue.main.async { self.buildMenuButtons() }
             }
+    }
+    
+    private func fetchClosedDays() {
+        guard let shopId = shopId else { return }
+        
+        db.collection("shops").document(shopId).getDocument { [weak self] snap, error in
+            guard let self = self else { return }
+            let data = snap?.data() ?? [:]
+            
+            self.closedWeekdays = data["closedWeekdays"] as? [String] ?? []
+            self.closedDates = data["closedDates"] as? [String] ?? []
+        }
     }
     
     // MARK: - Firestore: 이 샵의 기본 가능한 시간 슬롯들 불러오기
@@ -260,7 +277,7 @@ final class ReservationVC: UIViewController {
                 self.loadDisabledTimes(for: date)
             }
     }
-
+    
     private func loadDisabledTimes(for date: Date) {
         guard let shopId = shopId else { return }
         let dateString = formatDate(date)
@@ -279,7 +296,7 @@ final class ReservationVC: UIViewController {
                 }
             }
     }
-
+    
     // MARK: - UI 생성: 시간 버튼들
     private func buildTimeButtons() {
         timeStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
@@ -627,7 +644,57 @@ final class ReservationVC: UIViewController {
     }
     
     @objc private func dateChanged() {
-        loadReservedTimes(for: datePicker.date)
+        let selected = datePicker.date
+        
+        // 🔥 휴무 체크
+        if isClosedDay(selected) {
+            showClosedAlert()
+            clearTimeSlots()   // 시간 버튼 전체 비활성화
+            return
+        }
+        
+        // 정상영업일이면 기존 로직 실행
+        loadReservedTimes(for: selected)
+    }
+    
+    private func isClosedDay(_ date: Date) -> Bool {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        let dateKey = f.string(from: date)
+        
+        // 1) 특정 날짜 휴무 체크
+        if closedDates.contains(dateKey) { return true }
+        
+        // 2) 요일 휴무 체크
+        let weekdayFormatter = DateFormatter()
+        weekdayFormatter.dateFormat = "EEE"   // Mon, Tue, Wed...
+        weekdayFormatter.locale = Locale(identifier: "en_US")
+        
+        let weekdayKey = weekdayFormatter.string(from: date)
+        if closedWeekdays.contains(weekdayKey) { return true }
+        
+        return false
+    }
+    
+    private func showClosedAlert() {
+        let alert = UIAlertController(
+            title: "휴무일 안내",
+            message: "해당 날짜는 매장의 휴무일입니다.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        present(alert, animated: true)
+    }
+    
+    private func clearTimeSlots() {
+        timeStackView.arrangedSubviews.forEach { row in
+            if let rowStack = row as? UIStackView {
+                rowStack.arrangedSubviews.forEach { btn in
+                    (btn as? UIButton)?.isEnabled = false
+                    (btn as? UIButton)?.backgroundColor = .systemGray5
+                }
+            }
+        }
     }
     
     @objc private func dismissKeyboard() {
