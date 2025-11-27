@@ -43,9 +43,37 @@ final class MoreVC: UIViewController {
         let tv = UITableView(frame: .zero, style: .insetGrouped)
         tv.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         tv.backgroundColor = .clear
-        tv.isScrollEnabled = false
+        tv.isScrollEnabled = true
         return tv
     }()
+    
+    private let companyInfoHeaderLabel: UILabel = {
+        let label = UILabel()
+        label.text = "(주) 댕살롱 사업자 정보 ▼"
+        label.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+        label.textColor = .darkGray
+        label.textAlignment = .left
+        label.isUserInteractionEnabled = true
+        return label
+    }()
+    
+    private let companyInfoDetailLabel: UILabel = {
+        let label = UILabel()
+        label.text =
+        """
+        상호명: (주) 댕살롱
+        대표자: 최영건
+        사업자등록번호: 108-23-35549
+        주소: 경기도 시흥시 정왕대로 233번안길 13-9 204호
+        """
+        label.numberOfLines = 0
+        label.font = UIFont.systemFont(ofSize: 12)
+        label.textColor = .lightGray
+        label.textAlignment = .left
+        label.isHidden = true  // 처음엔 숨김
+        return label
+    }()
+    
     
     // MARK: - Data
     private var menuItems: [String] = []
@@ -55,6 +83,9 @@ final class MoreVC: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         
+        let tap = UITapGestureRecognizer(target: self, action: #selector(toggleCompanyInfo))
+        companyInfoHeaderLabel.addGestureRecognizer(tap)
+        
         setupUI()
         
         tableView.delegate = self
@@ -62,6 +93,7 @@ final class MoreVC: UIViewController {
         
         updateMenuItems()
         updateHeaderGreeting()
+        setupCompanyInfoSection()
         
         NotificationCenter.default.addObserver(
             self,
@@ -96,7 +128,8 @@ final class MoreVC: UIViewController {
         
         tableView.snp.makeConstraints {
             $0.top.equalTo(headerView.snp.bottom).offset(16)
-            $0.leading.trailing.bottom.equalToSuperview()
+            $0.leading.trailing.equalToSuperview()
+            $0.bottom.equalToSuperview()
         }
     }
     
@@ -147,6 +180,50 @@ final class MoreVC: UIViewController {
             greetingLabel.text = "로그인 후 이용해 주세요 👋"
         }
     }
+    
+    private func setupCompanyInfoSection() {
+
+        let footerContainer = UIView()
+        footerContainer.backgroundColor = .clear
+
+        footerContainer.addSubview(companyInfoHeaderLabel)
+        footerContainer.addSubview(companyInfoDetailLabel)
+
+        companyInfoHeaderLabel.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(8)
+            $0.leading.trailing.equalToSuperview().inset(16)
+        }
+
+        companyInfoDetailLabel.snp.makeConstraints {
+            $0.top.equalTo(companyInfoHeaderLabel.snp.bottom).offset(4)
+            $0.leading.trailing.equalToSuperview().inset(16)
+            $0.bottom.equalToSuperview().offset(-12)   // footer 끝
+        }
+
+        // footer 크기 자동 계산
+        footerContainer.layoutIfNeeded()
+        footerContainer.frame.size.height = footerContainer.systemLayoutSizeFitting(
+            CGSize(width: UIScreen.main.bounds.width, height: UIView.layoutFittingCompressedSize.height)
+        ).height
+
+        tableView.tableFooterView = footerContainer
+    }
+    
+    @objc private func toggleCompanyInfo() {
+        let isHidden = companyInfoDetailLabel.isHidden
+        
+        companyInfoDetailLabel.isHidden = !isHidden
+        
+        UIView.animate(withDuration: 0.25) {
+            if isHidden {
+                self.companyInfoHeaderLabel.text = "(주) 댕살롱 사업자 정보 ▲"
+            } else {
+                self.companyInfoHeaderLabel.text = "(주) 댕살롱 사업자 정보 ▼"
+            }
+            self.view.layoutIfNeeded()
+        }
+    }
+    
 }
 
 // MARK: - UITableViewDelegate & DataSource

@@ -242,35 +242,44 @@ final class ReservationVC: UIViewController {
             }
     }
     
-    // MARK: - Firestore: 날짜별 이미 예약된 슬롯
     private func loadReservedTimes(for date: Date) {
         guard let shopId = shopId else { return }
+        let dateString = formatDate(date)
         
-        let startOfDay = Calendar.current.startOfDay(for: date)
-        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
-        
-        db.collection("reservations")
-            .whereField("shopId", isEqualTo: shopId)
-            .whereField("status", in: ["예약 요청", "확정"])   // ⬅ 중요!! 취소, 완료는 제외
-            .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: startOfDay))
-            .whereField("date", isLessThan: Timestamp(date: endOfDay))
-            .getDocuments { [weak self] snapshot, error in
+        db.collection("shops").document(shopId)
+            .collection("reserved").document(dateString)
+            .getDocument { [weak self] snap, _ in
                 guard let self = self else { return }
                 
-                if let error = error {
-                    print("❌ 예약 시간 불러오기 실패:", error.localizedDescription)
-                    return
+                if let data = snap?.data() {
+                    self.reservedTimes = Array(data.keys)
+                } else {
+                    self.reservedTimes = []
                 }
                 
-                // ✅ 예약된 time만 추출해서 reservedTimes에 저장
-                self.reservedTimes = snapshot?.documents.compactMap { $0["time"] as? String } ?? []
+                self.loadDisabledTimes(for: date)
+            }
+    }
+
+    private func loadDisabledTimes(for date: Date) {
+        guard let shopId = shopId else { return }
+        let dateString = formatDate(date)
+        
+        db.collection("shops").document(shopId)
+            .collection("disabled").document(dateString)
+            .getDocument { [weak self] snap, _ in
+                guard let self = self else { return }
+                
+                if let data = snap?.data() {
+                    self.reservedTimes += Array(data.keys)
+                }
                 
                 DispatchQueue.main.async {
-                    self.buildTimeButtons() // 버튼 다시 그림 → 예약된 시간 비활성화 반영
+                    self.buildTimeButtons()
                 }
             }
     }
-    
+
     // MARK: - UI 생성: 시간 버튼들
     private func buildTimeButtons() {
         timeStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
@@ -642,5 +651,16 @@ extension ReservationVC: UITextViewDelegate {
             textView.text = nil
             textView.textColor = .label
         }
+    }
+}
+
+extension ReservationVC {
+    /// 날짜 → "yyyy-MM-dd" 형태 문자열로 변환
+    func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
+        return formatter.string(from: date)
     }
 }
