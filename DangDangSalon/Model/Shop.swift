@@ -31,7 +31,7 @@ struct Shop {
     let businessNumber: String?
     let workingDays: String?
     
-    let category: String?
+    var categories: [String]?
     let createdAt: Date?
     
     let latitude: Double?
@@ -55,7 +55,7 @@ struct Shop {
         self.intro = data["intro"] as? String
         self.openTime = data["openTime"] as? String
         self.closeTime = data["closeTime"] as? String
-        self.category = data["category"] as? String
+        self.categories = data["categories"] as? [String]
         self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue()
         
         // 🔥 Firestore 좌표 필드 읽기

@@ -87,6 +87,16 @@ final class ReservationVC: UIViewController {
         return tv
     }()
     
+    // 🍀 requestField 바로 아래에 추가
+    private let additionalFeeLabel: UILabel = {
+        let lb = UILabel()
+        lb.text = "※ 필요 시 요금이 추가될 수 있습니다."
+        lb.font = .systemFont(ofSize: 13)
+        lb.textColor = .systemGray
+        lb.numberOfLines = 0
+        return lb
+    }()
+    
     private let datePicker: UIDatePicker = {
         let picker = UIDatePicker()
         picker.datePickerMode = .date
@@ -387,7 +397,12 @@ final class ReservationVC: UIViewController {
             let isSelected = selectedMenus.contains { $0.name == menuInfo.name && $0.price == menuInfo.price }
             
             let btn = UIButton(type: .system)
-            btn.setTitle("\(menuInfo.name) · \(menuInfo.price)원", for: .normal)
+            let formattedPrice = NumberFormatter.localizedString(
+                from: NSNumber(value: menuInfo.price),
+                number: .decimal
+            )
+            
+            btn.setTitle("\(menuInfo.name) - \(formattedPrice)원", for: .normal)
             btn.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
             btn.layer.cornerRadius = 8
             btn.layer.borderWidth = 1
@@ -508,6 +523,12 @@ final class ReservationVC: UIViewController {
             $0.top.equalTo(totalPriceLabel.snp.bottom).offset(24)
             $0.leading.trailing.equalToSuperview().inset(24)
             $0.height.equalTo(60)
+        }
+        
+        contentView.addSubview(additionalFeeLabel)
+        additionalFeeLabel.snp.makeConstraints {
+            $0.top.equalTo(requestField.snp.bottom).offset(6)
+            $0.leading.trailing.equalToSuperview().inset(24)
         }
         
         confirmButton.snp.makeConstraints {

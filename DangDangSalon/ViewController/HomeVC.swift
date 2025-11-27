@@ -232,11 +232,12 @@ class HomeVC: UIViewController,
         selectedCategory = title
         updateCategoryButtonAppearance(selected: title)
         
-        // 필터링 로직
         if title == "전체" {
             nearbyShops = allShops
         } else {
-            nearbyShops = allShops.filter { $0.category == title }
+            nearbyShops = allShops.filter { shop in
+                shop.categories?.contains(title) ?? false
+            }
         }
         nearbyTableView.reloadData()
     }
@@ -269,11 +270,11 @@ class HomeVC: UIViewController,
             
             // Shop 변환
             self.allShops = documents.compactMap { Shop(document: $0) }
-
+            
             // NEW 계산
             let now = Date()
             let threshold = Calendar.current.date(byAdding: .day, value: -30, to: now)!
-
+            
             self.allShops = self.allShops.map { shop in
                 var s = shop
                 if let createdAt = shop.createdAt {
@@ -284,14 +285,14 @@ class HomeVC: UIViewController,
             
             self.recommendedShops = self.allShops.filter { $0.isRecommended }
             self.nearbyShops = self.allShops
-
+            
             DispatchQueue.main.async {
                 self.sortShopsByDistanceIfPossible()
                 self.updateEmptyStates()
             }
         })
     }
-
+    
     private func sortShopsByDistanceIfPossible() {
         guard let userLocation = userLocation else { return }
         
