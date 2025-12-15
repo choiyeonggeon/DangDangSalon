@@ -14,7 +14,7 @@
 		4289BD532EA8DB6E00F02DDC /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 4289BD522EA8DB6E00F02DDC /* FirebaseFirestore */; };
 		4289BD552EA8DB6E00F02DDC /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 4289BD542EA8DB6E00F02DDC /* FirebaseStorage */; };
 		4289BD582EA8DB8500F02DDC /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4289BD572EA8DB8500F02DDC /* SnapKit */; };
-		428D06A12EA93FE3004DF6D2 /* TossPayments in Frameworks */ = {isa = PBXBuildFile; productRef = 428D06A02EA93FE3004DF6D2 /* TossPayments */; };
+		42AA58A12ED8ADB9007437DE /* TossPayments in Frameworks */ = {isa = PBXBuildFile; productRef = 42AA58A02ED8ADB9007437DE /* TossPayments */; };
 		42AB1E502EB1095800207828 /* Secret.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 42AB1E4F2EB1095800207828 /* Secret.xcconfig */; };
 		42EA82FF2ECC43C1007461AF /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 42EA82FE2ECC43C1007461AF /* SDWebImage */; };
 /* End PBXBuildFile section */
@@ -105,9 +105,9 @@
 				423B5B822EB8CA7D00EB5A47 /* FirebaseMessaging in Frameworks */,
 				4289BD4F2EA8DB6E00F02DDC /* FirebaseAuth in Frameworks */,
 				4289BD532EA8DB6E00F02DDC /* FirebaseFirestore in Frameworks */,
-				428D06A12EA93FE3004DF6D2 /* TossPayments in Frameworks */,
 				42EA82FF2ECC43C1007461AF /* SDWebImage in Frameworks */,
 				4289BD582EA8DB8500F02DDC /* SnapKit in Frameworks */,
+				42AA58A12ED8ADB9007437DE /* TossPayments in Frameworks */,
 				423B5C5F2EB9FA8000EB5A47 /* KakaoSDKAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -183,10 +183,10 @@
 				4289BD522EA8DB6E00F02DDC /* FirebaseFirestore */,
 				4289BD542EA8DB6E00F02DDC /* FirebaseStorage */,
 				4289BD572EA8DB8500F02DDC /* SnapKit */,
-				428D06A02EA93FE3004DF6D2 /* TossPayments */,
 				423B5B812EB8CA7D00EB5A47 /* FirebaseMessaging */,
 				423B5C5E2EB9FA8000EB5A47 /* KakaoSDKAuth */,
 				42EA82FE2ECC43C1007461AF /* SDWebImage */,
+				42AA58A02ED8ADB9007437DE /* TossPayments */,
 			);
 			productName = DangDangSalon;
 			productReference = 422273472E9FA7700009329B /* DangSalon.app */;
@@ -273,9 +273,9 @@
 			packageReferences = (
 				4289BD4D2EA8DB6E00F02DDC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				4289BD562EA8DB8500F02DDC /* XCRemoteSwiftPackageReference "SnapKit" */,
-				428D069F2EA93FE3004DF6D2 /* XCRemoteSwiftPackageReference "payment-sdk-ios" */,
 				423B5C5D2EB9FA8000EB5A47 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */,
 				42EA82FD2ECC43C1007461AF /* XCRemoteSwiftPackageReference "SDWebImage" */,
+				42AA589F2ED8ADB9007437DE /* XCRemoteSwiftPackageReference "payment-sdk-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 422273482E9FA7700009329B /* Products */;
@@ -370,8 +370,9 @@
 				INFOPLIST_FILE = /Users/cyg050217/Desktop/DangDangSalon/DangDangSalon/DangDangSalon/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "댕살롱";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "앱이 항상 위치 정보를 사용할 수 있도록 허용해주세요.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "앱 사용 중 위치 정보를 사용합니다.";
+				INFOPLIST_KEY_NSContactsUsageDescription = "댕살롱은 예약 시 보호자 이름 자동 입력과 알림 수신을 위해 연락처 정보를 사용할 수 있습니다. 연락처 정보는 앱 외부로 저장되지 않습니다.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "댕살롱은 주변 매장을 검색하고 예약 가능한 매장을 안내하기 위해 사용자의 위치 정보를 사용합니다. 현재 위치를 기반으로 가장 가까운 미용실을 보여줍니다.\n댕살롱은 주변 매장을 검색하고 예약 가능한 매장을 안내하기 위해 사용자의 위치 정보를 사용합니다. 현재 위치를 기반으로 가장 가까운 미용실을 보여줍니다.\n댕살롱은 주변 매장을 검색하고 예약 가능한 매장을 안내하기 위해 사용자의 위치 정보를 사용합니다. 현재 위치를 기반으로 가장 가까운 미용실을 보여줍니다.\n댕살롱은 주변 매장을 검색하고 예약 가능한 매장을 안내하기 위해 사용자의 위치 정보를 사용합니다.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "댕살롱은 주변 매장을 검색하고 예약 가능한 매장을 안내하기 위해 사용자의 위치 정보를 사용합니다. 현재 위치를 기반으로 가장 가까운 미용실을 보여줍니다.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "앱에서 사진을 선택하거나 업로드하기 위해 사진 접근이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -413,8 +414,9 @@
 				INFOPLIST_FILE = /Users/cyg050217/Desktop/DangDangSalon/DangDangSalon/DangDangSalon/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "댕살롱";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "앱이 항상 위치 정보를 사용할 수 있도록 허용해주세요.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "앱 사용 중 위치 정보를 사용합니다.";
+				INFOPLIST_KEY_NSContactsUsageDescription = "댕살롱은 예약 시 보호자 이름 자동 입력과 알림 수신을 위해 연락처 정보를 사용할 수 있습니다. 연락처 정보는 앱 외부로 저장되지 않습니다.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "댕살롱은 주변 매장을 검색하고 예약 가능한 매장을 안내하기 위해 사용자의 위치 정보를 사용합니다. 현재 위치를 기반으로 가장 가까운 미용실을 보여줍니다.\n댕살롱은 주변 매장을 검색하고 예약 가능한 매장을 안내하기 위해 사용자의 위치 정보를 사용합니다. 현재 위치를 기반으로 가장 가까운 미용실을 보여줍니다.\n댕살롱은 주변 매장을 검색하고 예약 가능한 매장을 안내하기 위해 사용자의 위치 정보를 사용합니다. 현재 위치를 기반으로 가장 가까운 미용실을 보여줍니다.\n댕살롱은 주변 매장을 검색하고 예약 가능한 매장을 안내하기 위해 사용자의 위치 정보를 사용합니다.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "댕살롱은 주변 매장을 검색하고 예약 가능한 매장을 안내하기 위해 사용자의 위치 정보를 사용합니다. 현재 위치를 기반으로 가장 가까운 미용실을 보여줍니다.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "앱에서 사진을 선택하거나 업로드하기 위해 사진 접근이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -703,7 +705,7 @@
 				minimumVersion = 5.7.1;
 			};
 		};
-		428D069F2EA93FE3004DF6D2 /* XCRemoteSwiftPackageReference "payment-sdk-ios" */ = {
+		42AA589F2ED8ADB9007437DE /* XCRemoteSwiftPackageReference "payment-sdk-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/tosspayments/payment-sdk-ios.git";
 			requirement = {
@@ -757,9 +759,9 @@
 			package = 4289BD562EA8DB8500F02DDC /* XCRemoteSwiftPackageReference "SnapKit" */;
 			productName = SnapKit;
 		};
-		428D06A02EA93FE3004DF6D2 /* TossPayments */ = {
+		42AA58A02ED8ADB9007437DE /* TossPayments */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 428D069F2EA93FE3004DF6D2 /* XCRemoteSwiftPackageReference "payment-sdk-ios" */;
+			package = 42AA589F2ED8ADB9007437DE /* XCRemoteSwiftPackageReference "payment-sdk-ios" */;
 			productName = TossPayments;
 		};
 		42EA82FE2ECC43C1007461AF /* SDWebImage */ = {

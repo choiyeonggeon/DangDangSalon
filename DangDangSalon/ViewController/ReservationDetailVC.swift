@@ -122,12 +122,13 @@ final class ReservationDetailVC: UIViewController {
     
     private let guideLabel: UILabel = {
         let lb = UILabel()
-        lb.text = "예약 2시간 전까지만 취소 가능합니다."
+        lb.text = "(!) 애견 미용 특성상 이용일 기준 이틀 전 이후 취소가 어렵습니다."
         lb.font = .systemFont(ofSize: 13, weight: .regular)
         lb.textColor = .secondaryLabel
         lb.textAlignment = .center
         lb.numberOfLines = 0
         lb.isHidden = true
+        lb.isUserInteractionEnabled = true
         return lb
     }()
     
@@ -324,6 +325,10 @@ final class ReservationDetailVC: UIViewController {
         callIconButton.addTarget(self, action: #selector(callShop), for: .touchUpInside)
         mapIconButton.addTarget(self, action: #selector(openMap), for: .touchUpInside)
         reportIconButton.addTarget(self, action: #selector(reportTapped), for: .touchUpInside)
+        
+        // 🔥 추가: 안내 문구 탭 이벤트
+        let tap = UITapGestureRecognizer(target: self, action: #selector(showCancelPolicyDetail))
+        guideLabel.addGestureRecognizer(tap)
     }
     
     // MARK: - Data Config
@@ -428,6 +433,18 @@ final class ReservationDetailVC: UIViewController {
         }
     }
     
+    @objc private func showCancelPolicyDetail() {
+        let msg = """
+    애견 미용 서비스는 사전 준비가 필요한 특성상
+    이용일 기준 이틀 전 이후에는 취소가 불가합니다.
+    부득이한 경우 매장으로 문의해 주세요.
+    """
+        
+        let alert = UIAlertController(title: "취소 안내", message: msg, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        present(alert, animated: true)
+    }
+    
     // MARK: - Actions
     @objc private func cancelTapped() {
         guard let userId = Auth.auth().currentUser?.uid, let reservation = reservation else { return }
@@ -442,8 +459,8 @@ final class ReservationDetailVC: UIViewController {
         if reservationDate <= now {
             message = "이미 지난 예약은 취소할 수 없습니다."
             canCancel = false
-        } else if hoursUntilReservation <= 2 {
-            message = "예약 2시간 전 이후에는 앱에서 취소할 수 없습니다.\n매장에 직접 문의해 주세요."
+        } else if hoursUntilReservation <= 48 {
+            message = "애견 미용 서비스는 사전 준비가 필요한 특성상\n이용일 기준 이틀 전 이후에는 취소가 불가합니다.\n부득이한 경우 매장으로 문의해 주세요."
             canCancel = false
         } else {
             message = "정말 예약을 취소하시겠어요?"

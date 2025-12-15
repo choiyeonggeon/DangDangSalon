@@ -93,29 +93,35 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         completionHandler([.banner, .sound])
     }
     
-    // MARK: - Toss 결제 URL 처리
     func application(_ app: UIApplication,
                      open url: URL,
                      options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
-        
+
         let urlString = url.absoluteString
-        
-        if urlString.starts(with: "dangdangs://success") {
-            handlePaymentSuccess(url: url)
-            return true
-        } else if urlString.starts(with: "dangdangs://fail") {
-            print("결제 실패:", urlString)
-            return true
+        print("📌 openURL (AppDelegate):", urlString)
+
+        // 1) 내 커스텀 스킴으로 돌아온 BrandPay / 성공 콜백 처리 (예: dangsalon://success?orderId=xxx&shopId=yyy)
+        if url.scheme == "dangsalon" {
+            // 성공 / 실패 / brandpay 콜백 패턴들로 분기
+            if url.host == "success" || url.host == "brandpay" || url.host == "brandpay-callback" {
+                handlePaymentSuccess(url: url)
+                return true
+            } else if url.host == "fail" {
+                print("결제 실패 or 취소 콜백:", urlString)
+                // 필요하면 사용자 안내 처리
+                return true
+            }
         }
-        
-        // 카카오 로그인 URL 처리
-        if (AuthApi.isKakaoTalkLoginUrl(url)) {
+
+        // 2) 카카오 로그인 처리 (기존 코드 유지)
+        if AuthApi.isKakaoTalkLoginUrl(url) {
             return AuthController.handleOpenUrl(url: url)
         }
-        
+
+        // 3) 그 외는 false
         return false
     }
-    
+
     // MARK: - Toss 결제 Firestore 저장
     private func handlePaymentSuccess(url: URL) {
         guard let components = URLComponents(string: url.absoluteString),

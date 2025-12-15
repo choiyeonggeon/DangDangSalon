@@ -8,10 +8,10 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>dangdangs</string>
+			<string>com.cyg050217.DangDangSalon</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>dangdangs</string>
+				<string>dangsalon</string>
 			</array>
 		</dict>
 		<dict>
@@ -36,8 +36,6 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-	<key>NSUserNotificationUsageDescription</key>
-	<string>앱에서 알림을 보내기 위해 권한이 필요합니다.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Pretendard-Black.otf</string>
