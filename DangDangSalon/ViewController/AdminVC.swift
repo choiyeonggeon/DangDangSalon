@@ -14,6 +14,7 @@ final class AdminVC: UIViewController {
     
     private let menuItems = [
         "공지사항 작성",
+        "쿠폰 발급",
         "리뷰 신고 관리",
         "예약 신고 관리",
         "고객센터(관리자용)"
@@ -60,6 +61,10 @@ extension AdminVC: UITableViewDelegate, UITableViewDataSource {
             
         case "공지사항 작성":
             let vc = NoticeWriteVC()
+            navigationController?.pushViewController(vc, animated: true)
+            
+        case "쿠폰 발급":
+            let vc = CouponIssueVC()
             navigationController?.pushViewController(vc, animated: true)
             
         case "리뷰 신고 관리":

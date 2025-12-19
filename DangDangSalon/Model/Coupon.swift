@@ -20,12 +20,17 @@ struct Coupon {
     
     init?(doc: DocumentSnapshot) {
         let data = doc.data() ?? [:]
+        
+        guard let expiredAt = data["expiredAt"] as? Timestamp else {
+            return nil
+        }
+        
         self.id = doc.documentID
         self.title = data["title"] as? String ?? ""
         self.discountType = data["discountType"] as? String ?? "amount"
         self.discountValue = data["discountValue"] as? Int ?? 0
         self.minPrice = data["minPrice"] as? Int ?? 0
-        self.expiredAt = data["expiredAt"] as? Timestamp ?? Timestamp()
+        self.expiredAt = expiredAt
         self.shopId = data["shopID"] as? String ?? "all"
         self.isActive = data["isActive"] as? Bool ?? false
     }

@@ -40,13 +40,23 @@ final class CouponCell: UITableViewCell {
     
     func configure(coupon: Coupon) {
         titleLabel.text = coupon.title
-        discountLabel.text = coupon.discountType == "percent"
-        ? "\(coupon.discountValue)% 할인"
-        : "\(coupon.discountValue)원 할인"
+        
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal   // ✅ 5,000 형태
+        
+        let discountText: String
+        if coupon.discountType == "percent" {
+            discountText = "\(coupon.discountValue)% 할인"
+        } else {
+            let value = formatter.string(from: NSNumber(value: coupon.discountValue)) ?? "\(coupon.discountValue)"
+            discountText = "\(value)원 할인"
+        }
+        
+        discountLabel.text = discountText
         
         let date = coupon.expiredAt.dateValue()
-        let forrmatter = DateFormatter()
-        forrmatter.dateFormat = "yyyy-MM-dd"
-        expireLabel.text = "유효기간 \(forrmatter.string(from: date))"
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        expireLabel.text = "유효기간 \(dateFormatter.string(from: date))"
     }
 }
