@@ -41,13 +41,16 @@ final class MyCouponVC: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
         
+        // ✅ 자동 높이 설정 (핵심)
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 100
+        
         view.addSubview(tableView)
         tableView.snp.makeConstraints {
             $0.edges.equalToSuperview()
         }
         
         view.addSubview(emptyLabel)
-        
         emptyLabel.snp.makeConstraints {
             $0.center.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(32)
@@ -92,6 +95,7 @@ final class MyCouponVC: UIViewController {
         lb.textColor = .secondaryLabel
         lb.textAlignment = .center
         lb.font = .systemFont(ofSize: 15, weight: .medium)
+        lb.numberOfLines = 0
         
         tableView.backgroundView = lb
     }
@@ -103,7 +107,8 @@ final class MyCouponVC: UIViewController {
 
 extension MyCouponVC: UITableViewDataSource {
     
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    func tableView(_ tableView: UITableView,
+                   numberOfRowsInSection section: Int) -> Int {
         return coupons.count
     }
     
@@ -123,10 +128,5 @@ extension MyCouponVC: UITableViewDataSource {
     }
 }
 
-extension MyCouponVC: UITableViewDelegate {
-    
-    func tableView(_ tableView: UITableView,
-                   heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 80
-    }
-}
+// ✅ heightForRowAt 제거
+extension MyCouponVC: UITableViewDelegate {}

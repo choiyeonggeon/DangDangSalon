@@ -117,7 +117,9 @@ final class CouponIssueVC: UIViewController {
     
     private func dateFromString(_ str: String) -> Date? {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy.MM.dd"   // ✅ 여기만 변경
         return formatter.date(from: str)
     }
     
