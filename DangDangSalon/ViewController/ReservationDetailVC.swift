@@ -585,6 +585,7 @@ final class ReservationDetailVC: UIViewController {
             "status": "pending",
             "createdAt": Timestamp()
         ]
+        
         db.collection("reservationReports").document(reportId).setData(data) { err in
             if let err = err {
                 self.showAlert(title: "오류", message: "신고 접수에 실패했습니다.\n\(err.localizedDescription)")

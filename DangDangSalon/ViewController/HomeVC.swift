@@ -119,6 +119,7 @@ class HomeVC: UIViewController,
         super.viewDidLoad()
         setupUI()
         setupCategoryButtons()
+        setupNotificationButton()
         
         // 🔥 위치 권한 요청
         locationManager.delegate = self
@@ -206,6 +207,23 @@ class HomeVC: UIViewController,
             $0.leading.trailing.equalToSuperview().inset(12)
             $0.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom)
         }
+    }
+    
+    private func setupNotificationButton() {
+        let bellButton = UIBarButtonItem(
+            image: UIImage(systemName: "bell"),
+            style: .plain,
+            target: self,
+            action: #selector(notificationTapped)
+        )
+        
+        bellButton.tintColor = UIColor.label
+        navigationItem.rightBarButtonItem = bellButton
+    }
+    
+    @objc private func notificationTapped() {
+        let vc = NotificationInboxVC()
+        navigationController?.pushViewController(vc, animated: true)
     }
     
     // MARK: - 카테고리 버튼 생성
