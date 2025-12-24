@@ -265,7 +265,7 @@ final class ReservationDetailVC: UIViewController {
             $0.top.leading.trailing.equalTo(view.safeAreaLayoutGuide)
             $0.bottom.equalTo(cancelButton.snp.top).offset(-12)
         }
-        
+
         contentView.snp.makeConstraints {
             $0.edges.equalToSuperview()
             $0.width.equalTo(scrollView.snp.width)
@@ -306,13 +306,13 @@ final class ReservationDetailVC: UIViewController {
             $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(12)
             $0.height.equalTo(52)
         }
-        
+
         reviewButton.snp.makeConstraints {
             $0.leading.trailing.equalTo(cancelButton)
             $0.bottom.equalTo(cancelButton.snp.top).offset(-12)
             $0.height.equalTo(52)
         }
-        
+
         guideLabel.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(20)
             $0.bottom.equalTo(reviewButton.snp.top).offset(-6)
@@ -387,7 +387,6 @@ final class ReservationDetailVC: UIViewController {
         }
     }
     
-    // MARK: - Pet Info
     // MARK: - Pet Info
     private func loadPetInfo(petId: String) {
         guard let uid = Auth.auth().currentUser?.uid else {

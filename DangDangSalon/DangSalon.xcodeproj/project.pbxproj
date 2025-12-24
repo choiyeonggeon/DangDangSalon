@@ -16,6 +16,7 @@
 		4289BD582EA8DB8500F02DDC /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4289BD572EA8DB8500F02DDC /* SnapKit */; };
 		42AA58A12ED8ADB9007437DE /* TossPayments in Frameworks */ = {isa = PBXBuildFile; productRef = 42AA58A02ED8ADB9007437DE /* TossPayments */; };
 		42AB1E502EB1095800207828 /* Secret.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 42AB1E4F2EB1095800207828 /* Secret.xcconfig */; };
+		42DC8A982EFBF263003BEC31 /* NotificationDetailVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42DC8A972EFBF263003BEC31 /* NotificationDetailVC.swift */; };
 		42EA82FF2ECC43C1007461AF /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 42EA82FE2ECC43C1007461AF /* SDWebImage */; };
 /* End PBXBuildFile section */
 
@@ -41,6 +42,7 @@
 		4222735D2E9FA7720009329B /* DangSalonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DangSalonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		422273672E9FA7720009329B /* DangSalonUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DangSalonUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		42AB1E4F2EB1095800207828 /* Secret.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secret.xcconfig; sourceTree = "<group>"; };
+		42DC8A972EFBF263003BEC31 /* NotificationDetailVC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDetailVC.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -132,6 +134,7 @@
 		4222733E2E9FA7700009329B = {
 			isa = PBXGroup;
 			children = (
+				42DC8A972EFBF263003BEC31 /* NotificationDetailVC.swift */,
 				42AB1E4F2EB1095800207828 /* Secret.xcconfig */,
 				422274B42EA767C20009329B /* Cell */,
 				422274772EA0DB6D0009329B /* Font */,
@@ -319,6 +322,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				42DC8A982EFBF263003BEC31 /* NotificationDetailVC.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

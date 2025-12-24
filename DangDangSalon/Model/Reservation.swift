@@ -61,7 +61,7 @@ struct Reservation {
     // MARK: - UI용 포맷터
     var dateString: String {
         let f = DateFormatter()
-        f.dateFormat = "yyyy년 M월 d일 (E)"
+        f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "ko_KR")
         return f.string(from: date)
     }

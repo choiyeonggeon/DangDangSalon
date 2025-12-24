@@ -278,8 +278,9 @@ final class ReservationVC: UIViewController {
             .getDocument { [weak self] snap, _ in
                 guard let self = self else { return }
                 
-                if let data = snap?.data() {
-                    self.reservedTimes = Array(data.keys)
+                if let data = snap?.data(),
+                   let times = data["times"] as? [String] {
+                    self.reservedTimes = times
                 } else {
                     self.reservedTimes = []
                 }
@@ -575,6 +576,7 @@ final class ReservationVC: UIViewController {
         db.collection("reservations")
             .whereField("shopId", isEqualTo: shopId)
             .whereField("status", in: ["예약 요청", "확정"])
+            .whereField("time", isEqualTo: time)
             .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: start))
             .whereField("date", isLessThan: Timestamp(date: end))
             .getDocuments { [weak self] snap, _ in
@@ -626,6 +628,22 @@ final class ReservationVC: UIViewController {
                             self.showAlert(title: "오류", message: "예약에 실패했습니다.")
                             return
                         }
+                        
+                        // ✅ 1️⃣ 여기서 날짜 키 생성
+                        let dateKey = self.formatDate(selectedDate)
+                        
+                        // ✅ 2️⃣ reserved 문서 레퍼런스
+                        let reservedRef = self.db.collection("shops")
+                            .document(shopId)
+                            .collection("reserved")
+                            .document(dateKey)
+                        
+                        // ✅ 3️⃣ 예약 시간 추가
+                        reservedRef.setData([
+                            "times": FieldValue.arrayUnion([time])
+                        ], merge: true)
+                        
+                        // ✅ 4️⃣ UI 갱신
                         self.reservedTimes.append(time)
                         self.buildTimeButtons()
                         self.loadReservedTimes(for: selectedDate)
