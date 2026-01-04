@@ -10,6 +10,13 @@ import SnapKit
 import FirebaseFirestore
 import CoreLocation
 
+enum ShopSortType {
+    case distance
+    case price
+    case rating
+    case reviewCount
+}
+
 class HomeVC: UIViewController,
               UICollectionViewDataSource,
               UICollectionViewDelegate,
@@ -48,6 +55,13 @@ class HomeVC: UIViewController,
         stack.axis = .horizontal
         stack.spacing = 8
         stack.distribution = .fillEqually
+        return stack
+    }()
+    
+    private let categoryContainer: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 8
         return stack
     }()
     
@@ -98,6 +112,16 @@ class HomeVC: UIViewController,
         return lb
     }()
     
+    private let sortInlineButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitle("정렬 ⌄", for: .normal)
+        btn.titleLabel?.font = .systemFont(ofSize: 14, weight: .medium)
+        btn.layer.cornerRadius = 16
+        btn.layer.borderWidth = 1
+        btn.layer.borderColor = UIColor.systemGray4.cgColor
+        return btn
+    }()
+    
     private let nearbyTableView: UITableView = {
         let tv = UITableView()
         tv.register(ShopCell.self, forCellReuseIdentifier: "ShopCell")
@@ -120,6 +144,8 @@ class HomeVC: UIViewController,
         setupUI()
         setupCategoryButtons()
         setupNotificationButton()
+        
+        sortInlineButton.addTarget(self, action: #selector(sortTapped), for: .touchUpInside)
         
         // 🔥 위치 권한 요청
         locationManager.delegate = self
@@ -147,7 +173,7 @@ class HomeVC: UIViewController,
     private func setupUI() {
         view.backgroundColor = .systemBackground
         
-        [appNameLabel, titleLabel, searchBar, categoryStack, recommendedLabel,
+        [appNameLabel, titleLabel, searchBar, categoryContainer, recommendedLabel,
          recommendedCollectionView, emptyRecommendedLabel, nearbyLabel, emptyNearbyLabel, nearbyTableView].forEach {
             view.addSubview($0)
         }
@@ -167,10 +193,17 @@ class HomeVC: UIViewController,
             $0.leading.trailing.equalToSuperview().inset(16)
         }
         
-        categoryStack.snp.makeConstraints {
+        categoryContainer.snp.makeConstraints {
             $0.top.equalTo(searchBar.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview().inset(16)
             $0.height.equalTo(40)
+        }
+        
+        categoryContainer.addArrangedSubview(categoryStack)
+        categoryContainer.addArrangedSubview(sortInlineButton)
+        
+        sortInlineButton.snp.makeConstraints {
+            $0.width.equalTo(72)
         }
         
         recommendedLabel.snp.makeConstraints {
@@ -224,6 +257,57 @@ class HomeVC: UIViewController,
     @objc private func notificationTapped() {
         let vc = NotificationInboxVC()
         navigationController?.pushViewController(vc, animated: true)
+    }
+    
+    @objc private func sortTapped() {
+        let sheet = UIAlertController(title: "정렬 기준", message: nil, preferredStyle: .actionSheet)
+        
+        sheet.addAction(UIAlertAction(title: "가까운 순", style: .default) { _ in
+            self.sortShops(by: .distance)
+        })
+        
+        sheet.addAction(UIAlertAction(title: "가격 낮은 순", style: .default) { _ in
+            self.sortShops(by: .price)
+        })
+        
+        sheet.addAction(UIAlertAction(title: "별점 높은 순", style: .default) { _ in
+            self.sortShops(by: .rating)
+        })
+        
+        sheet.addAction(UIAlertAction(title: "리뷰 많은 순", style: .default) { _ in
+            self.sortShops(by: .reviewCount)
+        })
+        
+        sheet.addAction(UIAlertAction(title: "취소", style: .cancel))
+        
+        present(sheet, animated: true)
+    }
+    
+    private func sortShops(by type: ShopSortType) {
+        switch type {
+            
+        case .distance:
+            nearbyShops.sort {
+                ($0.distanceMeter ?? Int.max) < ($1.distanceMeter ?? Int.max)
+            }
+            
+        case .price:
+            nearbyShops.sort {
+                ($0.minPrice ?? Int.max) < ($1.minPrice ?? Int.max)
+            }
+            
+        case .rating:
+            nearbyShops.sort {
+                $0.rating > $1.rating
+            }
+            
+        case .reviewCount:
+            nearbyShops.sort {
+                $0.reviewCount > $1.reviewCount
+            }
+        }
+        
+        nearbyTableView.reloadData()
     }
     
     // MARK: - 카테고리 버튼 생성

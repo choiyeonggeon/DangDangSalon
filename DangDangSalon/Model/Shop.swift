@@ -19,6 +19,8 @@ struct Shop {
     let reviewCount: Int
     let imageURLs: [String]?
     var distanceMeter: Int?
+    let minPrice: Int?   // 🔥 최소 가격 (정렬용)
+
     let sizeType: String?
     let address: String?
     let phone: String?
@@ -46,6 +48,7 @@ struct Shop {
         self.name = name
         self.rating = data["avgRating"] as? Double ?? 0.0
         self.reviewCount = data["reviewCount"] as? Int ?? 0
+        self.minPrice = data["minPrice"] as? Int
         
         self.imageURLs = data["imageURLs"] as? [String]
         self.distanceMeter = data["distanceMeter"] as? Int
