@@ -46,13 +46,111 @@ final class CouponIssueVC: UIViewController {
         )
         
         let issueButton = UIBarButtonItem(
-            title: "발급",
+            title: "개별 발급",
             style: .done,
             target: self,
             action: #selector(issueSelectedCoupon)
         )
         
-        navigationItem.rightBarButtonItems = [issueButton, createButton]
+        let issueAllButton = UIBarButtonItem(
+            title: "전체 발급",
+            style: .done, target: self,
+            action: #selector(issueToAllUsersTapped)
+        )
+        
+        navigationItem.rightBarButtonItems = [issueAllButton, issueButton, createButton]
+    }
+    
+    // MARK: - Batch Issue to All Users
+    @objc private func issueToAllUsersTapped() {
+        // 1. 선택된 쿠폰 확인
+        guard let indexPath = tableView.indexPathForSelectedRow else {
+            showAlert(title: "선택 오류", message: "전체 발급할 쿠폰을 리스트에서 선택해주세요.")
+            return
+        }
+        
+        let selectedCoupon = coupons[indexPath.row]
+        
+        // 2. 최종 확인 알림
+        let alert = UIAlertController(
+            title: "전체 발급 확인",
+            message: "현재 불러온 모든 유저(\(users.count)명)에게\n'\(selectedCoupon.title)' 쿠폰을 발급하시겠습니까?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(.init(title: "취소", style: .cancel))
+        alert.addAction(.init(title: "발급 시작", style: .destructive) { _ in
+            self.processBatchIssue(coupon: selectedCoupon)
+        })
+        
+        present(alert, animated: true)
+    }
+    
+    private func processBatchIssue(coupon: Coupon) {
+        let batch = db.batch()
+        let now = FieldValue.serverTimestamp()
+        let group = DispatchGroup() // 비동기 작업 동기화를 위한 그룹
+        
+        var issuedCount = 0
+        var skippedCount = 0
+        
+        // 로딩 인디케이터 등을 표시하면 좋습니다.
+        print("중복 체크 및 발급 시작...")
+
+        for user in users {
+            group.enter()
+            
+            // 해당 유저의 쿠폰함에 동일한 제목의 쿠폰이 있는지 확인
+            // (필요에 따라 couponId 필드를 추가하여 체크하는 것이 더 정확합니다)
+            db.collection("users").document(user.id).collection("coupons")
+                .whereField("title", isEqualTo: coupon.title)
+                .whereField("isActive", isEqualTo: true)
+                .getDocuments { snapshot, error in
+                    defer { group.leave() }
+                    
+                    if let snapshot = snapshot, snapshot.isEmpty {
+                        // 중복된 쿠폰이 없을 때만 배치에 추가
+                        let userCouponRef = self.db.collection("users")
+                            .document(user.id)
+                            .collection("coupons")
+                            .document()
+                        
+                        let data: [String: Any] = [
+                            "originCouponId": coupon.id, // 중복 체크용 원본 ID 기록
+                            "title": coupon.title,
+                            "discountValue": coupon.discountValue,
+                            "discountType": coupon.discountType,
+                            "minPrice": coupon.minPrice,
+                            "expiredAt": coupon.expiredAt,
+                            "shopID": coupon.shopId,
+                            "isActive": true,
+                            "createdAt": now
+                        ]
+                        batch.setData(data, forDocument: userCouponRef)
+                        issuedCount += 1
+                    } else {
+                        // 이미 가지고 있는 경우
+                        skippedCount += 1
+                    }
+                }
+        }
+        
+        // 모든 유저의 중복 체크가 끝나면 배치 커밋
+        group.notify(queue: .main) {
+            if issuedCount == 0 {
+                self.showAlert(title: "알림", message: "모든 유저가 이미 이 쿠폰을 보유하고 있습니다.")
+                return
+            }
+            
+            batch.commit { error in
+                if let error = error {
+                    self.showAlert(title: "실패", message: error.localizedDescription)
+                } else {
+                    self.showAlert(title: "발급 완료",
+                                 message: "\(issuedCount)명에게 발급 완료, \(skippedCount)명 중복 제외")
+                }
+            }
+        }
     }
     
     // MARK: - Fetch Coupons
