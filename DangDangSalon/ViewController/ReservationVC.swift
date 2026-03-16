@@ -39,7 +39,25 @@ final class ReservationVC: UIViewController {
     private var pets: [Pet] = []
     private var selectedPet: Pet?
     
+    // MARK: - Coupon Properties
+    private var coupons: [Coupon] = []
+    private var selectedCoupon: Coupon? {
+        didSet { updateTotalPrice() }
+    }
+    
     // MARK: - UI
+    
+    private let couponSelectButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitle("사용 가능한 쿠폰 선택", for: .normal)
+        btn.setTitleColor(.systemBlue, for: .normal)
+        btn.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        btn.layer.borderWidth = 1
+        btn.layer.borderColor = UIColor.systemBlue.cgColor
+        btn.layer.cornerRadius = 8
+        btn.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        return btn
+    }()
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "예약하기"
@@ -87,7 +105,6 @@ final class ReservationVC: UIViewController {
         return tv
     }()
     
-    // 🍀 requestField 바로 아래에 추가
     private let additionalFeeLabel: UILabel = {
         let lb = UILabel()
         lb.text = "※ 필요 시 요금이 추가될 수 있습니다."
@@ -172,6 +189,10 @@ final class ReservationVC: UIViewController {
         confirmButton.addTarget(self, action: #selector(confirmTapped), for: .touchUpInside)
         datePicker.addTarget(self, action: #selector(dateChanged), for: .valueChanged)
         petSelectButton.addTarget(self, action: #selector(showPetSelector), for: .touchUpInside)
+        couponSelectButton.addTarget(self, action: #selector(showCouponSelector), for: .touchUpInside)
+        
+        // 데이터 로드 호출
+        fetchCoupons()
         
         // 키보드 내리기 탭 제스처
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
@@ -184,6 +205,29 @@ final class ReservationVC: UIViewController {
         fetchPets()
         fetchAvailableTimes()
         loadReservedTimes(for: datePicker.date)
+    }
+    
+    private func fetchCoupons() {
+        guard let uid = Auth.auth().currentUser?.uid, let currentShopId = shopId else { return }
+        
+        db.collection("users").document(uid).collection("coupons")
+            .whereField("isActive", isEqualTo: true)
+            .getDocuments { [weak self] snap, _ in
+                guard let self = self else { return }
+                
+                let allFetched = snap?.documents.compactMap { Coupon(doc: $0) } ?? []
+                
+                let now = Timestamp(date: Date())
+                self.coupons = allFetched.filter { coupon in
+                    let isNotExpired = coupon.expiredAt.seconds > now.seconds
+                    let isForThisShop = (coupon.shopId == "all" || coupon.shopId == currentShopId)
+                    return isNotExpired && isForThisShop
+                }
+                
+                DispatchQueue.main.async {
+                    self.couponSelectButton.setTitle(self.coupons.isEmpty ? "사용 가능한 쿠폰 없음" : "쿠폰 선택 (보유: \(self.coupons.count)장)", for: .normal)
+                }
+            }
     }
     
     // MARK: - Firestore: 메뉴 불러오기
@@ -462,6 +506,7 @@ final class ReservationVC: UIViewController {
             timeStackView,
             menuSectionLabel,
             menuStackView,
+            couponSelectButton, // 1. 여기에 추가
             totalPriceLabel,
             requestField,
             confirmButton
@@ -515,8 +560,13 @@ final class ReservationVC: UIViewController {
             $0.leading.trailing.equalToSuperview().inset(24)
         }
         
+        couponSelectButton.snp.makeConstraints {
+            $0.top.equalTo(menuStackView.snp.bottom).offset(20)
+            $0.leading.trailing.equalToSuperview().inset(24)
+        }
+        
         totalPriceLabel.snp.makeConstraints {
-            $0.top.equalTo(menuStackView.snp.bottom).offset(12)
+            $0.top.equalTo(couponSelectButton.snp.bottom).offset(12)
             $0.trailing.equalToSuperview().inset(24)
         }
         
@@ -541,13 +591,37 @@ final class ReservationVC: UIViewController {
     }
     
     private func updateTotalPrice() {
-        let total = selectedMenus.map { $0.price }.reduce(0, +)
-        let formatted = NumberFormatter.localizedString(from: NSNumber(value: total), number: .decimal)
-        totalPriceLabel.text = "총 결제금액: \(formatted)원"
+        let menuTotal = selectedMenus.map { $0.price }.reduce(0, +)
+        var finalTotal = menuTotal
+        
+        if let coupon = selectedCoupon {
+            // 최소 주문 금액 미달 시 쿠폰 해제
+            if menuTotal < coupon.minPrice {
+                self.selectedCoupon = nil
+                showAlert(title: "쿠폰 적용 불가", message: "해당 쿠폰은 \(coupon.minPrice)원 이상 결제 시 사용 가능합니다.")
+                return
+            }
+            
+            // 할인 계산
+            if coupon.discountType == "percent" {
+                let discount = Int(Double(menuTotal) * (Double(coupon.discountValue) / 100.0))
+                finalTotal = max(0, menuTotal - discount)
+            } else {
+                finalTotal = max(0, menuTotal - coupon.discountValue)
+            }
+        }
+        
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        let totalStr = formatter.string(from: NSNumber(value: finalTotal)) ?? "0"
+        
+        totalPriceLabel.text = "총 결제금액: \(totalStr)원"
+        totalPriceLabel.textColor = (selectedCoupon != nil) ? .systemRed : .systemBlue
     }
     
     // MARK: - 예약 등록
     @objc private func confirmTapped() {
+        
         guard let name = nameField.text, !name.isEmpty,
               let phone = phoneField.text, !phone.isEmpty,
               let shopId = shopId,
@@ -568,7 +642,20 @@ final class ReservationVC: UIViewController {
         let selectedDate = datePicker.date
         let requestText = (requestField.textColor == .systemGray3) ? "" : requestField.text
         let menuNames = selectedMenus.map { $0.name }
-        let totalPrice = selectedMenus.map { $0.price }.reduce(0, +)
+        
+        // --- 💰 가격 계산 (쿠폰 적용 로직 포함) ---
+        let menuTotalPrice = selectedMenus.map { $0.price }.reduce(0, +)
+        var finalTotalPrice = menuTotalPrice
+        
+        if let coupon = selectedCoupon {
+            if coupon.discountType == "percent" {
+                let discount = Int(Double(menuTotalPrice) * (Double(coupon.discountValue) / 100.0))
+                finalTotalPrice = max(0, menuTotalPrice - discount)
+            } else {
+                finalTotalPrice = max(0, menuTotalPrice - coupon.discountValue)
+            }
+        }
+        // ---------------------------------------
         
         let start = Calendar.current.startOfDay(for: selectedDate)
         let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
@@ -590,7 +677,6 @@ final class ReservationVC: UIViewController {
                     let ownerId = shopSnap?.data()?["ownerId"] as? String ?? ""
                     let reservationId = UUID().uuidString
                     
-                    // 🔥 Firestore에 반려견 정보 추가
                     let data: [String: Any] = [
                         "id": reservationId,
                         "userId": userId,
@@ -599,7 +685,7 @@ final class ReservationVC: UIViewController {
                         "shopName": shopName,
                         "ownerId": ownerId,
                         "menus": menuNames,
-                        "totalPrice": totalPrice,
+                        "totalPrice": finalTotalPrice, // 💰 쿠폰 적용된 최종가 저장
                         "date": Timestamp(date: selectedDate),
                         "time": time,
                         "status": "예약 요청",
@@ -607,19 +693,18 @@ final class ReservationVC: UIViewController {
                         "phone": phone,
                         "request": requestText ?? "",
                         "reviewWritten": false,
-                        
                         "address": self.shopAddress ?? "",
                         "shopPhone": self.shopPhone ?? "",
                         "shopLat": self.shopLat ?? 0,
                         "shopLng": self.shopLng ?? 0,
-                        
-                        // ⬅⬅⬅✨ 여기 추가됨
                         "petId": pet.id,
                         "petName": pet.name,
                         "petBreed": pet.breed,
                         "petWeight": pet.weight,
                         "petAge": pet.age,
-                        "petPhotoURL": pet.photoURL ?? ""
+                        "petPhotoURL": pet.photoURL ?? "",
+                        // 쿠폰을 사용했다면 정보 기록 (선택 사항)
+                        "usedCouponId": self.selectedCoupon?.id ?? ""
                     ]
                     
                     self.db.collection("reservations").document(reservationId).setData(data) { err in
@@ -629,29 +714,42 @@ final class ReservationVC: UIViewController {
                             return
                         }
                         
-                        // ✅ 1️⃣ 여기서 날짜 키 생성
+                        // ✨ [추가] 1️⃣ 사용한 쿠폰 처리
+                        if let usedCoupon = self.selectedCoupon {
+                            self.db.collection("users").document(userId)
+                                .collection("coupons").document(usedCoupon.id)
+                                .updateData([
+                                    "isActive": false,
+                                    "usedAt": FieldValue.serverTimestamp()
+                                ])
+                        }
+                        
+                        // ✅ 2️⃣ 여기서 날짜 키 생성
                         let dateKey = self.formatDate(selectedDate)
                         
-                        // ✅ 2️⃣ reserved 문서 레퍼런스
+                        // ✅ 3️⃣ reserved 문서 레퍼런스
                         let reservedRef = self.db.collection("shops")
                             .document(shopId)
                             .collection("reserved")
                             .document(dateKey)
                         
-                        // ✅ 3️⃣ 예약 시간 추가
+                        // ✅ 4️⃣ 예약 시간 추가
                         reservedRef.setData([
                             "times": FieldValue.arrayUnion([time])
                         ], merge: true)
                         
-                        // ✅ 4️⃣ UI 갱신
+                        // ✅ 5️⃣ UI 갱신
                         self.reservedTimes.append(time)
                         self.buildTimeButtons()
                         self.loadReservedTimes(for: selectedDate)
                         
-                        self.showAlert(
-                            title: "예약 완료",
-                            message: "\(name)님, \(time)에 예약이 완료되었습니다.\n선택한 메뉴: \(menuNames.joined(separator: ", "))\n반려견: \(pet.name)"
-                        )
+                        // ✅ 6️⃣ 알림 메시지에 할인 정보 포함 (선택)
+                        var successMsg = "\(name)님, \(time)에 예약이 완료되었습니다.\n반려견: \(pet.name)"
+                        if self.selectedCoupon != nil {
+                            successMsg += "\n(쿠폰 할인이 적용되었습니다.)"
+                        }
+                        
+                        self.showAlert(title: "예약 완료", message: successMsg)
                     }
                 }
             }
@@ -734,6 +832,31 @@ final class ReservationVC: UIViewController {
                 }
             }
         }
+    }
+    
+    @objc private func showCouponSelector() {
+        if coupons.isEmpty { return }
+        
+        let alert = UIAlertController(title: "쿠폰 선택", message: "결제 시 사용할 쿠폰을 선택하세요.", preferredStyle: .actionSheet)
+        
+        // 쿠폰 리스트 추가
+        coupons.forEach { coupon in
+            let discountText = coupon.discountType == "percent" ? "\(coupon.discountValue)%" : "\(coupon.discountValue)원"
+            let title = "[\(coupon.title)] \(discountText) 할인 (최소 \(coupon.minPrice)원)"
+            
+            alert.addAction(UIAlertAction(title: title, style: .default) { _ in
+                self.selectedCoupon = coupon
+                self.couponSelectButton.setTitle("적용됨: \(coupon.title)", for: .normal)
+            })
+        }
+        
+        alert.addAction(UIAlertAction(title: "적용 안 함", style: .destructive) { _ in
+            self.selectedCoupon = nil
+            self.couponSelectButton.setTitle("쿠폰 선택", for: .normal)
+        })
+        
+        alert.addAction(UIAlertAction(title: "닫기", style: .cancel))
+        present(alert, animated: true)
     }
     
     @objc private func dismissKeyboard() {

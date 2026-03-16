@@ -79,37 +79,33 @@ final class CouponIssueVC: UIViewController {
     
     // MARK: - Create Coupon
     @objc private func createCouponTapped() {
-        let alert = UIAlertController(
-            title: "새 쿠폰 생성",
-            message: "제목 / 할인 / 만료일",
-            preferredStyle: .alert
-        )
+        let alert = UIAlertController(title: "새 쿠폰 생성", message: "상세 정보를 입력하세요", preferredStyle: .alert)
         
         alert.addTextField { $0.placeholder = "쿠폰 제목" }
-        alert.addTextField { $0.placeholder = "예: 5000원 또는 10%" }
-        alert.addTextField { $0.placeholder = "만료일 (yyyy-MM-dd)" }
-        
-        alert.addAction(.init(title: "취소", style: .cancel))
+        alert.addTextField { $0.placeholder = "할인 (예: 5000원 또는 10%)" }
+        alert.addTextField { $0.placeholder = "최소 주문 금액 (숫자만)" }
+        alert.addTextField { $0.placeholder = "만료일 (yyyy.MM.dd)" }
+        alert.addTextField { $0.placeholder = "샵 ID (전체는 all)" }
+
         alert.addAction(.init(title: "생성", style: .destructive) { _ in
-            guard
-                let title = alert.textFields?[0].text, !title.isEmpty,
-                let discountText = alert.textFields?[1].text,
-                let expiredAt = self.dateFromString(alert.textFields?[2].text ?? ""),
-                let discount = self.parseDiscount(discountText)
-            else { return }
+            guard let title = alert.textFields?[0].text, !title.isEmpty,
+                  let discountText = alert.textFields?[1].text,
+                  let minPrice = Int(alert.textFields?[2].text ?? "0"),
+                  let expiredDate = self.dateFromString(alert.textFields?[3].text ?? ""),
+                  let shopId = alert.textFields?[4].text,
+                  let discount = self.parseDiscount(discountText) else { return }
             
             let data: [String: Any] = [
                 "title": title,
                 "discountValue": discount.value,
                 "discountType": discount.type,
-                "expiredAt": Timestamp(date: expiredAt)
+                "minPrice": minPrice,
+                "expiredAt": Timestamp(date: expiredDate),
+                "shopID": shopId,
+                "isActive": true
             ]
             
-            self.db.collection("coupons").addDocument(data: data) { error in
-                if error == nil {
-                    self.fetchCoupons()
-                }
-            }
+            self.db.collection("coupons").addDocument(data: data) { _ in self.fetchCoupons() }
         })
         
         present(alert, animated: true)
@@ -181,24 +177,29 @@ final class CouponIssueVC: UIViewController {
         to user: User,
         discount: (value: Int, type: String)
     ) {
+        // ReservationVC의 Coupon 모델 구조에 맞게 데이터 구성
         let data: [String: Any] = [
-            "couponId": coupon.id,
-            "isUsed": false,
-            "discountValue": discount.value,
-            "discountType": discount.type,
-            "createdAt": Timestamp()
+            "title": coupon.title,            // 쿠폰 이름
+            "discountValue": discount.value,  // 할인 값
+            "discountType": discount.type,    // 할인 타입 (amount/percent)
+            "minPrice": coupon.minPrice,      // 최소 주문 금액 (기존 쿠폰 정보 활용)
+            "expiredAt": coupon.expiredAt,    // 만료일 (기존 쿠폰 정보 활용)
+            "shopID": coupon.shopId,          // 특정 샵 ID 또는 "all"
+            "isActive": true,                 // 발급 시 바로 활성화
+            "createdAt": FieldValue.serverTimestamp()
         ]
         
+        // 경로 통일: "myCoupons" -> "coupons"
         db.collection("users")
             .document(user.id)
-            .collection("myCoupons")
+            .collection("coupons") // ReservationVC에서 읽는 컬렉션명과 동일하게 변경
             .addDocument(data: data) { error in
                 if let error = error {
                     self.showAlert(title: "오류", message: error.localizedDescription)
                 } else {
                     self.showAlert(
                         title: "발급 완료",
-                        message: "\(coupon.title)\n\(user.name ?? "유저")에게 발급됨"
+                        message: "\(coupon.title)이(가)\n\(user.name ?? "유저")에게 발급되었습니다."
                     )
                 }
             }

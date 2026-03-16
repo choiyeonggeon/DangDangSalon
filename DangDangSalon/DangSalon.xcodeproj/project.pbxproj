@@ -55,6 +55,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		4215D3832F67E62300644C69 /* ViewModel */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ViewModel;
+			sourceTree = "<group>";
+		};
 		422273492E9FA7700009329B /* DangDangSalon */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -133,8 +138,9 @@
 			isa = PBXGroup;
 			children = (
 				42AB1E4F2EB1095800207828 /* Secret.xcconfig */,
-				422274B42EA767C20009329B /* Cell */,
 				422274772EA0DB6D0009329B /* Font */,
+				422274B42EA767C20009329B /* Cell */,
+				4215D3832F67E62300644C69 /* ViewModel */,
 				422274762EA0D5810009329B /* ViewController */,
 				422274752EA0D5750009329B /* Model */,
 				422273492E9FA7700009329B /* DangDangSalon */,
@@ -170,6 +176,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				4215D3832F67E62300644C69 /* ViewModel */,
 				422273492E9FA7700009329B /* DangDangSalon */,
 				422274752EA0D5750009329B /* Model */,
 				422274762EA0D5810009329B /* ViewController */,
